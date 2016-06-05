@@ -4,13 +4,25 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/mish.cpp 
+../src/bytecode.cpp \
+../src/code.cpp \
+../src/function.cpp \
+../src/mish.cpp \
+../src/scope.cpp 
 
 OBJS += \
-./src/mish.o 
+./src/bytecode.o \
+./src/code.o \
+./src/function.o \
+./src/mish.o \
+./src/scope.o 
 
 CPP_DEPS += \
-./src/mish.d 
+./src/bytecode.d \
+./src/code.d \
+./src/function.d \
+./src/mish.d \
+./src/scope.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
