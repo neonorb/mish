@@ -7,7 +7,9 @@ src/scope.o: ../src/scope.cpp /home/chris/git/mish/include/scope.h \
  /home/chris/git/mish/include/function.h \
  /home/chris/git/mish/include/code.h \
  /home/chris/git/mish/include/bytecode.h \
- /home/chris/git/mish/include/instruction.h
+ /home/chris/git/mish/include/instruction.h \
+ /home/chris/git/mish/include/expression.h \
+ /home/chris/git/mish/include/value.h
 
 /home/chris/git/mish/include/scope.h:
 
@@ -32,3 +34,7 @@ src/scope.o: ../src/scope.cpp /home/chris/git/mish/include/scope.h \
 /home/chris/git/mish/include/bytecode.h:
 
 /home/chris/git/mish/include/instruction.h:
+
+/home/chris/git/mish/include/expression.h:
+
+/home/chris/git/mish/include/value.h:

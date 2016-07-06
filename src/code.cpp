@@ -6,8 +6,14 @@
  */
 
 #include <code.h>
+#include <functioncallvoid.h>
 
 #include <memory.h>
+#include <mish.h>
+#include <string.h>
+#include <instruction.h>
+#include <list.h>
+#include <value.h>
 
 Code* Code::destroy() {
 	bytecodes.destroy();
@@ -22,11 +28,10 @@ void Code::execute() {
 	Bytecode* bytecode;
 	while ((bytecode = iterator->next()) != NULL) {
 		switch (bytecode->instruction) {
-		case PRINTHI:
-			log("HI");
-			break;
-		case PRINTBOB:
-			log("BOB");
+		case FUNC_CALL:
+			FunctionCallVoid* functionCallVoid = (FunctionCallVoid*) bytecode;
+			functionCallVoid->call();
+
 			break;
 		}
 	}

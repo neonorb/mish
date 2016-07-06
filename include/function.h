@@ -9,6 +9,9 @@
 #define INCLUDE_FUNCTION_H_
 
 #include <code.h>
+#include <list.h>
+#include <expression.h>
+#include <value.h>
 
 class Code;
 class Function {
@@ -16,6 +19,8 @@ public:
 	Code* code;
 
 	Function* destroy();
+
+	Value* call(List<Value*>* arguments);
 };
 
 #endif /* INCLUDE_FUNCTION_H_ */

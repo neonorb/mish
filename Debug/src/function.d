@@ -7,7 +7,9 @@ src/function.o: ../src/function.cpp \
  /home/chris/git/feta/include/errors.h \
  /home/chris/git/mish/include/scope.h \
  /home/chris/git/mish/include/bytecode.h \
- /home/chris/git/mish/include/instruction.h
+ /home/chris/git/mish/include/instruction.h \
+ /home/chris/git/mish/include/expression.h \
+ /home/chris/git/mish/include/value.h
 
 /home/chris/git/mish/include/function.h:
 
@@ -32,3 +34,7 @@ src/function.o: ../src/function.cpp \
 /home/chris/git/mish/include/bytecode.h:
 
 /home/chris/git/mish/include/instruction.h:
+
+/home/chris/git/mish/include/expression.h:
+
+/home/chris/git/mish/include/value.h:

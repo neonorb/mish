@@ -10,7 +10,10 @@
 
 #include <code.h>
 #include <string.h>
+#include <syscall.h>
 
 Code* mish_compile(String code);
+void mish_addSyscall(Syscall* syscall);
+List<Syscall*> mish_getSyscalls();
 
 #endif /* INCLUDE_MISH_H_ */

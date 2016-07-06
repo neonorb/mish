@@ -9,7 +9,7 @@
 #define INCLUDE_INSTRUCTION_H_
 
 enum Instruction {
-	PRINTHI, PRINTBOB
+	FUNC_CALL
 };
 
 #endif /* INCLUDE_INSTRUCTION_H_ */
