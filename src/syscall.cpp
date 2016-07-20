@@ -7,7 +7,7 @@
 
 #include <syscall.h>
 
-Syscall::Syscall(String name, SyscallHandler handler) {
+/*Syscall::Syscall(String name, SyscallHandler handler) {
 	this->name = name;
 	this->handler = handler;
 }
@@ -19,3 +19,4 @@ Syscall* Syscall::destroy() {
 Value* Syscall::call(List<Value*>* arguments) {
 	return handler(arguments);
 }
+*/

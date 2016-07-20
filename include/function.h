@@ -13,11 +13,15 @@
 #include <expression.h>
 #include <value.h>
 
-class Code;
-class Function {
-public:
-	Code* code;
+typedef Value* (*FunctionHandler)(List<Value*>* arguments);
 
+class Function {
+private:
+	FunctionHandler handler;
+public:
+	String name;
+
+	Function(String name, FunctionHandler handler);
 	Function* destroy();
 
 	Value* call(List<Value*>* arguments);

@@ -12,6 +12,7 @@ Scope* Scope::destroy() {
 	Iterator<Function*>* iterator = functions.iterator();
 	Function* function;
 	while ((function = iterator->next()) != NULL) {
+		function->destroy();
 		delete function;
 	}
 	functions.destroy();

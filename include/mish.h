@@ -13,7 +13,7 @@
 #include <syscall.h>
 
 Code* mish_compile(String code);
-void mish_addSyscall(Syscall* syscall);
-List<Syscall*> mish_getSyscalls();
+void mish_addSyscall(Function* syscall);
+List<Function*> mish_getSyscalls();
 
 #endif /* INCLUDE_MISH_H_ */

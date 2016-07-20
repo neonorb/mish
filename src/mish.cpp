@@ -19,7 +19,7 @@ static String validSymbolChars =
 #define STRING_IDENTIFIER '\''
 #define ESCAPE '\\'
 
-static List<Syscall*> syscalls;
+static List<Function*> syscalls;
 
 enum ParseMode {
 	UNKNOWN, SYMBOL, FUNCTION, STRING
@@ -37,44 +37,42 @@ Code* mish_compile(String code) {
 
 	for (uint64 i = 0; i < strlen(code); i++) {
 		char c = code[i];
-		write_serial(c);
-		debug("parseMode", parseMode.peek());
 
 		if (c == STRING_IDENTIFIER || parseMode.peek() == STRING) {
 			if (escape) {
+				// not escaping
 				escape = false;
-				continue;
 			} else if (c == ESCAPE) {
+				// escaping
 				escape = true;
 				continue;
-			} else if (parseMode.peek() == STRING) { // end stringBuffer
-				write_serial('>');
+			}
+
+			if (parseMode.peek() == STRING && c == STRING_IDENTIFIER) {
+				// end string
 				parseMode.pop();
 				char* str = (char*) malloc(string.size() + 1);
 
 				Iterator<char>* stringIterator = string.iterator();
 				char strChar;
-				uint64 strIndex;
+				uint64 strIndex = 0;
 				while ((strChar = stringIterator->next()) != NULL) {
-					str[i] = strChar;
-					string.remove((unsigned long long int) 0);
+					str[strIndex] = strChar;
 					strIndex++;
 				}
-				str[i] = 0; // null terminate
+				str[strIndex] = NULL; // null terminate
+				delete stringIterator;
+				string.clear();
 
 				arguments.peek()->add((Expression*) new StringValue(str));
-
-				continue;
 			} else if (c == STRING_IDENTIFIER) {
-				write_serial('<');
+				// start string
 				parseMode.push(STRING); // begin stringBuffer
-				debug("pm", parseMode.peek());
 				symbolStart = i + 1;
-				continue;
+			} else {
+				// add to string
+				string.add(c);
 			}
-
-			string.add(c);
-			write_serial(c);
 		} else if (arrayContains<char>((char*) validSymbolChars,
 				strlen(validSymbolChars), c)) {
 			if (parseMode.peek() != SYMBOL) {
@@ -88,13 +86,11 @@ Code* mish_compile(String code) {
 				symbols.push(substring(code, symbolStart, i));
 				arguments.push(new List<Expression*>());
 
-				write_serial('s');
 				parseMode.pop(); // SYMBOL
 				parseMode.push(FUNCTION);
 			}
 		} else if (c == ')') {
 			if (parseMode.peek() == FUNCTION) {
-				write_serial('f');
 				parseMode.pop(); // FUNCTION
 
 				String symbol = symbols.pop();
@@ -104,24 +100,24 @@ Code* mish_compile(String code) {
 				if (stringStartsWith(symbol, "__")) { // check if this is a syscall
 					String syscallName = substring(symbol, 2, strlen(symbol));
 
-					Iterator<Syscall*>* syscallIterator = syscalls.iterator();
-					Syscall* syscall;
+					Iterator<Function*>* syscallIterator = syscalls.iterator();
 					Function* function;
-					while ((syscall = syscallIterator->next()) != NULL) {
-						if (strequ(syscall->name, syscallName)) {
-							function = (Function*) syscall;
+					while ((function = syscallIterator->next()) != NULL) {
+						if (strequ(function->name, syscallName)) {
+							break;
 						}
 					}
+					delete syscallIterator;
 					if (function == NULL) {
 						crash("syscall not found");
 					}
+
 					callBytecode = (Bytecode*) new FunctionCallVoid(function,
 							arguments.pop());
 				} else {
 					// function
 					// TODO
 				}
-
 				compiledCode->bytecodes.add(callBytecode);
 			} else { // close parentheses
 					 // TODO
@@ -132,10 +128,10 @@ Code* mish_compile(String code) {
 	return compiledCode;
 }
 
-void mish_addSyscall(Syscall* syscall) {
+void mish_addSyscall(Function* syscall) {
 	syscalls.add(syscall);
 }
 
-List<Syscall*> mish_getSyscalls() {
+List<Function*> mish_getSyscalls() {
 	return syscalls;
 }

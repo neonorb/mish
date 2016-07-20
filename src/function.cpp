@@ -7,11 +7,15 @@
 
 #include <function.h>
 
+Function::Function(String name, FunctionHandler handler) {
+	this->name = name;
+	this->handler = handler;
+}
+
 Function* Function::destroy() {
-	code->destroy();
 	return this;
 }
 
-Value* Function::call(List<Value*>* arguments){
-	// TODO
+Value* Function::call(List<Value*>* arguments) {
+	return handler(arguments);
 }

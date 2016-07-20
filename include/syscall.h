@@ -13,18 +13,16 @@
 #include <value.h>
 #include <function.h>
 
-typedef Value* (*SyscallHandler)(List<Value*>* arguments);
-
-class Syscall: Function {
+/*class Syscall: Function {
 private:
-	SyscallHandler handler;
+	FunctionHandler handler;
 public:
 	String name;
 
-	Syscall(String name, SyscallHandler handler);
+	Syscall(String name, FunctionHandler handler);
 	Syscall* destroy();
 
 	Value* call(List<Value*>* arguments);
-};
+};*/
 
 #endif /* INCLUDE_SYSCALL_H_ */

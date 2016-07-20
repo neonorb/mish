@@ -14,6 +14,7 @@
 #include <instruction.h>
 #include <list.h>
 #include <value.h>
+#include <log.h>
 
 Code* Code::destroy() {
 	bytecodes.destroy();
