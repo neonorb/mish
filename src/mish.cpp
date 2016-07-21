@@ -13,8 +13,7 @@
 #include <functioncallvoid.h>
 #include <stack.h>
 
-static String validSymbolChars =
-		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789";
+#define VALID_SYMBOL_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
 
 #define STRING_IDENTIFIER '\''
 #define ESCAPE '\\'
@@ -22,30 +21,47 @@ static String validSymbolChars =
 static List<Function*> syscalls;
 
 enum ParseMode {
-	UNKNOWN, SYMBOL, FUNCTION, STRING
+	READY, SYMBOL, SYMBOL_READY, FUNCTION, STRING
 };
 
 static void assertPop(Stack<ParseMode>* stack, ParseMode expect) {
 	ParseMode popped = stack->pop();
-	if(popped != expect) {
-		crash("incorrect parse mode pop");
+	if (popped != expect) {
 		debug("expected", expect);
 		debug("got", popped);
+		crash("incorrect parse mode pop");
 	}
 }
 
+static bool isValidSymbolChar(char c) {
+	return arrayContains<char>(VALID_SYMBOL_CHARS,
+			strlen(VALID_SYMBOL_CHARS), c);
+}
+
 Code* mish_compile(String code) {
+	return mish_compile(code, (void*) strlen(code));
+}
+
+Code* mish_compile(String code, void* end) {
 	Code* compiledCode = new Code();
 
-	Stack<ParseMode> parseMode(UNKNOWN);
+	Stack<ParseMode> parseMode(READY);
 	Stack<List<Expression*>*> arguments;
 	Stack<String> symbols;
 	uint64 symbolStart;
+	String symbol;
 	List<char> string;
 	bool escape = false;
 
-	for (uint64 i = 0; i < strlen(code); i++) {
+	for (uint64 i = 0; i < (uint64) end - (uint64) code; i++) {
 		char c = code[i];
+		write_serial(c);
+
+		if (parseMode.peek() == SYMBOL && !isValidSymbolChar(c)) {
+			symbol = substring(code, symbolStart, i);
+			assertPop(&parseMode, SYMBOL);
+			parseMode.push(SYMBOL_READY);
+		}
 
 		if (c == STRING_IDENTIFIER || parseMode.peek() == STRING) {
 			if (escape) {
@@ -81,21 +97,22 @@ Code* mish_compile(String code) {
 				// add to string
 				string.add(c);
 			}
-		} else if (arrayContains<char>((char*) validSymbolChars,
-				strlen(validSymbolChars), c)) {
+		} else if (isValidSymbolChar(c)) {
 			if (parseMode.peek() != SYMBOL) {
 				parseMode.push(SYMBOL);
 				symbolStart = i;
 			}
 		} else if (c == '(') {
-			if (parseMode.peek() != SYMBOL) { // open parentheses
-				// TODO
-			} else { // function symbolStart
-				symbols.push(substring(code, symbolStart, i));
+			if (parseMode.peek() == SYMBOL_READY) {
+				// function symbolStart
+				symbols.push(symbol);
+				symbol = NULL;
 				arguments.push(new List<Expression*>());
 
-				assertPop(&parseMode, SYMBOL);
+				assertPop(&parseMode, SYMBOL_READY);
 				parseMode.push(FUNCTION);
+			} else { // open parentheses
+				// TODO
 			}
 		} else if (c == ')') {
 			if (parseMode.peek() == FUNCTION) {
@@ -135,7 +152,7 @@ Code* mish_compile(String code) {
 		}
 	}
 
-	assertPop(&parseMode, UNKNOWN);
+	assertPop(&parseMode, READY);
 
 	return compiledCode;
 }

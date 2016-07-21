@@ -13,6 +13,8 @@
 #include <syscall.h>
 
 Code* mish_compile(String code);
+Code* mish_compile(String start, void* end);
+
 void mish_addSyscall(Function* syscall);
 List<Function*> mish_getSyscalls();
 
