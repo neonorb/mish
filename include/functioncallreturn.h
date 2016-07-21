@@ -17,6 +17,7 @@
 class FunctionCallReturn: Expression {
 public:
 	FunctionCallReturn(Function* function, List<Expression*>* arguments);
+	~FunctionCallReturn();
 
 	Function* function;
 	List<Expression*>* arguments;

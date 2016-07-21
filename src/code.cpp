@@ -16,18 +16,18 @@
 #include <value.h>
 #include <log.h>
 
-Code* Code::destroy() {
-	bytecodes.destroy();
-
-	scope->destroy();
-	return this;
+Code::~Code() {
+	Iterator<Bytecode*> iterator = bytecodes.iterator();
+	Bytecode* bytecode;
+	while ((bytecode = iterator.next()) != NULL) {
+		delete bytecode;
+	}
 }
 
 void Code::execute() {
-	Iterator<Bytecode*>* iterator = bytecodes.iterator();
-
+	Iterator<Bytecode*> iterator = bytecodes.iterator();
 	Bytecode* bytecode;
-	while ((bytecode = iterator->next()) != NULL) {
+	while ((bytecode = iterator.next()) != NULL) {
 		switch (bytecode->instruction) {
 		case FUNC_CALL:
 			FunctionCallVoid* functionCallVoid = (FunctionCallVoid*) bytecode;
@@ -36,6 +36,4 @@ void Code::execute() {
 			break;
 		}
 	}
-
-	delete iterator;
 }

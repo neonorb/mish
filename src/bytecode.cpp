@@ -6,7 +6,11 @@
  */
 
 #include <bytecode.h>
+#include <functioncallvoid.h>
 
 Bytecode::Bytecode(Instruction instruction) {
 	this->instruction = instruction;
+}
+
+Bytecode::~Bytecode() {
 }

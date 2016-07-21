@@ -14,7 +14,7 @@
 class Function;
 class Scope {
 public:
-	Scope* destroy();
+	~Scope();
 
 	Scope* parent = NULL;
 

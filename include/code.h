@@ -11,14 +11,15 @@
 #include <list.h>
 #include <scope.h>
 #include <bytecode.h>
+#include <log.h>
 
 class Scope;
 class Code {
 public:
+	~Code();
+
 	List<Bytecode*> bytecodes;
 	Scope* scope;
-
-	Code* destroy();
 
 	void execute();
 };

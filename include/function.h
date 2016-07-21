@@ -22,7 +22,7 @@ public:
 	String name;
 
 	Function(String name, FunctionHandler handler);
-	Function* destroy();
+	~Function();
 
 	Value* call(List<Value*>* arguments);
 };

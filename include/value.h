@@ -17,13 +17,17 @@ enum ValueType {
 
 class Value: Expression {
 public:
-	Value(ValueType type);
 	ValueType type;
+
+	Value(ValueType type);
+	virtual ~Value();
 };
 
 class StringValue: Value {
 public:
 	StringValue(String value);
+	~StringValue();
+
 	String value;
 };
 

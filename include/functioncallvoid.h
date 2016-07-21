@@ -12,11 +12,11 @@
 #include <function.h>
 #include <list.h>
 #include <expression.h>
-#include <value.h>
 
 class FunctionCallVoid: Bytecode {
 public:
 	FunctionCallVoid(Function* function, List<Expression*>* arguments);
+	virtual ~FunctionCallVoid();
 
 	Function* function;
 	List<Expression*>* arguments;

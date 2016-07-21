@@ -13,7 +13,9 @@
 class Bytecode {
 public:
 	Instruction instruction;
+
 	Bytecode(Instruction instruction);
+	virtual ~Bytecode();
 };
 
 #endif /* INCLUDE_BYTECODE_H_ */

@@ -25,12 +25,21 @@ enum ParseMode {
 	UNKNOWN, SYMBOL, FUNCTION, STRING
 };
 
+static void assertPop(Stack<ParseMode>* stack, ParseMode expect) {
+	ParseMode popped = stack->pop();
+	if(popped != expect) {
+		crash("incorrect parse mode pop");
+		debug("expected", expect);
+		debug("got", popped);
+	}
+}
+
 Code* mish_compile(String code) {
 	Code* compiledCode = new Code();
 
-	Stack<ParseMode> parseMode = Stack<ParseMode>(UNKNOWN);
+	Stack<ParseMode> parseMode(UNKNOWN);
 	Stack<List<Expression*>*> arguments;
-	Stack<String> symbols = Stack<String>();
+	Stack<String> symbols;
 	uint64 symbolStart;
 	List<char> string;
 	bool escape = false;
@@ -50,18 +59,17 @@ Code* mish_compile(String code) {
 
 			if (parseMode.peek() == STRING && c == STRING_IDENTIFIER) {
 				// end string
-				parseMode.pop();
-				char* str = (char*) malloc(string.size() + 1);
+				assertPop(&parseMode, STRING);
+				char* str = (char*) create(string.size() + 1);
 
-				Iterator<char>* stringIterator = string.iterator();
+				Iterator<char> stringIterator = string.iterator();
 				char strChar;
 				uint64 strIndex = 0;
-				while ((strChar = stringIterator->next()) != NULL) {
+				while ((strChar = stringIterator.next()) != NULL) {
 					str[strIndex] = strChar;
 					strIndex++;
 				}
 				str[strIndex] = NULL; // null terminate
-				delete stringIterator;
 				string.clear();
 
 				arguments.peek()->add((Expression*) new StringValue(str));
@@ -86,12 +94,12 @@ Code* mish_compile(String code) {
 				symbols.push(substring(code, symbolStart, i));
 				arguments.push(new List<Expression*>());
 
-				parseMode.pop(); // SYMBOL
+				assertPop(&parseMode, SYMBOL);
 				parseMode.push(FUNCTION);
 			}
 		} else if (c == ')') {
 			if (parseMode.peek() == FUNCTION) {
-				parseMode.pop(); // FUNCTION
+				assertPop(&parseMode, FUNCTION);
 
 				String symbol = symbols.pop();
 
@@ -100,14 +108,15 @@ Code* mish_compile(String code) {
 				if (stringStartsWith(symbol, "__")) { // check if this is a syscall
 					String syscallName = substring(symbol, 2, strlen(symbol));
 
-					Iterator<Function*>* syscallIterator = syscalls.iterator();
+					Iterator<Function*> syscallIterator = syscalls.iterator();
 					Function* function;
-					while ((function = syscallIterator->next()) != NULL) {
+					while ((function = syscallIterator.next()) != NULL) {
 						if (strequ(function->name, syscallName)) {
 							break;
 						}
 					}
-					delete syscallIterator;
+					delete syscallName;
+
 					if (function == NULL) {
 						crash("syscall not found");
 					}
@@ -118,12 +127,15 @@ Code* mish_compile(String code) {
 					// function
 					// TODO
 				}
+				delete symbol;
 				compiledCode->bytecodes.add(callBytecode);
 			} else { // close parentheses
 					 // TODO
 			}
 		}
 	}
+
+	assertPop(&parseMode, UNKNOWN);
 
 	return compiledCode;
 }

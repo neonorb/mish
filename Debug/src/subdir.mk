@@ -44,7 +44,7 @@ CPP_DEPS += \
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Cross G++ Compiler'
-	i686-elf-g++ -I"/home/chris/git/mish/include" -I"/home/chris/git/feta/include" -O0 -g3 -Wall -c -fmessage-length=0 -nostdlib -ffreestanding  -fno-exceptions -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	i686-elf-g++ -I"/home/chris/git/mish/include" -I"/home/chris/git/feta/include" -O0 -g3 -Wall -c -fmessage-length=0 -nostdlib -ffreestanding -fno-exceptions -fno-rtti -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

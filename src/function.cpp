@@ -12,8 +12,7 @@ Function::Function(String name, FunctionHandler handler) {
 	this->handler = handler;
 }
 
-Function* Function::destroy() {
-	return this;
+Function::~Function() {
 }
 
 Value* Function::call(List<Value*>* arguments) {

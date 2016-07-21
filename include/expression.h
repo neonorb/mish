@@ -14,8 +14,10 @@ enum ExpressionType {
 
 class Expression {
 public:
-	Expression(ExpressionType type);
 	ExpressionType type;
+
+	Expression(ExpressionType type);
+	virtual ~Expression();
 };
 
 #endif /* INCLUDE_EXPRESSION_H_ */

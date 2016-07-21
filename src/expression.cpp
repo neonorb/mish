@@ -6,7 +6,12 @@
  */
 
 #include <expression.h>
+#include <functioncallreturn.h>
+#include <value.h>
 
-Expression::Expression(ExpressionType type){
+Expression::Expression(ExpressionType type) {
 	this->type = type;
+}
+
+Expression::~Expression() {
 }

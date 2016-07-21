@@ -13,17 +13,28 @@
 #include <functioncallreturn.h>
 
 FunctionCallVoid::FunctionCallVoid(Function* function,
-		List<Expression*>* arguments) : Bytecode(FUNC_CALL) {
+		List<Expression*>* arguments) :
+		Bytecode(FUNC_CALL) {
 	this->function = function;
 	this->arguments = arguments;
+}
+
+FunctionCallVoid::~FunctionCallVoid() {
+	Iterator<Expression*> iterator = arguments->iterator();
+	Expression* expression;
+	while ((expression = iterator.next()) != NULL) {
+		delete expression;
+	}
+
+	delete arguments;
 }
 
 void FunctionCallVoid::call() {
 	List<Value*> returns;
 
-	Iterator<Expression*>* expressionIterator = arguments->iterator();
+	Iterator<Expression*> expressionIterator = arguments->iterator();
 	Expression* expression;
-	while ((expression = expressionIterator->next()) != NULL) {
+	while ((expression = expressionIterator.next()) != NULL) {
 		if (expression->type == FUNCTION_EXPRESSION) {
 			FunctionCallReturn* functionCallReturn =
 					(FunctionCallReturn*) expression;
@@ -35,9 +46,5 @@ void FunctionCallVoid::call() {
 		}
 	}
 
-	delete expressionIterator;
-
 	function->call(&returns);
-
-	delete returns.destroy();
 }

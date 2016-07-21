@@ -17,12 +17,22 @@ FunctionCallReturn::FunctionCallReturn(Function* function,
 	this->arguments = arguments;
 }
 
+FunctionCallReturn::~FunctionCallReturn() {
+	Iterator<Expression*> iterator = arguments->iterator();
+	Expression* expression;
+	while ((expression = iterator.next()) != NULL) {
+		delete expression;
+	}
+
+	delete arguments;
+}
+
 Value* FunctionCallReturn::call() {
 	List<Value*> returns;
 
-	Iterator<Expression*>* expressionIterator = arguments->iterator();
+	Iterator<Expression*> expressionIterator = arguments->iterator();
 	Expression* expression;
-	while ((expression = expressionIterator->next()) != NULL) {
+	while ((expression = expressionIterator.next()) != NULL) {
 		if (expression->type == FUNCTION_EXPRESSION) {
 			FunctionCallReturn* functionCallReturn =
 					(FunctionCallReturn*) expression;
@@ -34,11 +44,6 @@ Value* FunctionCallReturn::call() {
 		}
 	}
 
-	delete expressionIterator;
-
 	Value* response = function->call(&returns);
-
-	delete returns.destroy();
-
 	return response;
 }

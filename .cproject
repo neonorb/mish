@@ -31,7 +31,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/mish/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/feta/include}&quot;"/>
 								</option>
-								<option id="gnu.c.compiler.option.misc.other.1905904579" name="Other flags" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -nostdlib -ffreestanding -fno-exceptions" valueType="string"/>
+								<option id="gnu.c.compiler.option.misc.other.1905904579" name="Other flags" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -nostdlib -ffreestanding -fno-exceptions -fno-rtti" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1221800916" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool command="i686-elf-g++" id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.634628114" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler">
@@ -41,7 +41,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/mish/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/feta/include}&quot;"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.other.other.945147294" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -nostdlib -ffreestanding  -fno-exceptions" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.945147294" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -nostdlib -ffreestanding -fno-exceptions -fno-rtti" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.dialect.std.1733779272" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1261173547" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
