@@ -13,12 +13,12 @@
 #include <functioncallvoid.h>
 #include <stack.h>
 
+List<Function*> mish_syscalls;
+
 #define VALID_SYMBOL_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
 
 #define STRING_IDENTIFIER '\''
 #define ESCAPE '\\'
-
-static List<Function*> syscalls;
 
 enum ParseMode {
 	READY, SYMBOL, SYMBOL_READY, FUNCTION, STRING
@@ -34,8 +34,8 @@ static void assertPop(Stack<ParseMode>* stack, ParseMode expect) {
 }
 
 static bool isValidSymbolChar(char c) {
-	return arrayContains<char>(VALID_SYMBOL_CHARS,
-			strlen(VALID_SYMBOL_CHARS), c);
+	return arrayContains<char>(VALID_SYMBOL_CHARS, strlen(VALID_SYMBOL_CHARS),
+			c);
 }
 
 Code* mish_compile(String code) {
@@ -55,7 +55,6 @@ Code* mish_compile(String code, void* end) {
 
 	for (uint64 i = 0; i < (uint64) end - (uint64) code; i++) {
 		char c = code[i];
-		write_serial(c);
 
 		if (parseMode.peek() == SYMBOL && !isValidSymbolChar(c)) {
 			symbol = substring(code, symbolStart, i);
@@ -79,10 +78,9 @@ Code* mish_compile(String code, void* end) {
 				char* str = (char*) create(string.size() + 1);
 
 				Iterator<char> stringIterator = string.iterator();
-				char strChar;
 				uint64 strIndex = 0;
-				while ((strChar = stringIterator.next()) != NULL) {
-					str[strIndex] = strChar;
+				while (stringIterator.hasNext()) {
+					str[strIndex] = stringIterator.next();
 					strIndex++;
 				}
 				str[strIndex] = NULL; // null terminate
@@ -125,16 +123,46 @@ Code* mish_compile(String code, void* end) {
 				if (stringStartsWith(symbol, "__")) { // check if this is a syscall
 					String syscallName = substring(symbol, 2, strlen(symbol));
 
-					Iterator<Function*> syscallIterator = syscalls.iterator();
+					Iterator<Function*> syscallIterator =
+							mish_syscalls.iterator();
 					Function* function;
-					while ((function = syscallIterator.next()) != NULL) {
+					bool found = false;
+					while (syscallIterator.hasNext() && !found) {
+						function = syscallIterator.next();
 						if (strequ(function->name, syscallName)) {
-							break;
+							// check parameter sizes
+							debug("arguments size", arguments.peek()->size());
+							debug("parameters size",
+									function->parameterTypes->size());
+							if (arguments.peek()->size()
+									!= function->parameterTypes->size()) {
+								continue;
+							}
+
+							// check parameter types
+							Iterator<Expression*> argumentsIterator =
+									arguments.peek()->iterator();
+							Iterator<ValueType> parametersIterator =
+									function->parameterTypes->iterator();
+							while (argumentsIterator.hasNext()
+									&& parametersIterator.hasNext()) {
+								Expression* argument = argumentsIterator.next();
+								debug("argument", argument->valueType);
+								ValueType parameter = parametersIterator.next();
+								debug("parameter", parameter);
+								if (argument->valueType != parameter) {
+									// incorrect function
+									debug("incorrect function");
+									goto continueFunctionSearch;
+								}
+							}
+							found = true;
+							continueFunctionSearch: continue;
 						}
 					}
 					delete syscallName;
 
-					if (function == NULL) {
+					if (!found) {
 						crash("syscall not found");
 					}
 
@@ -155,12 +183,4 @@ Code* mish_compile(String code, void* end) {
 	assertPop(&parseMode, READY);
 
 	return compiledCode;
-}
-
-void mish_addSyscall(Function* syscall) {
-	syscalls.add(syscall);
-}
-
-List<Function*> mish_getSyscalls() {
-	return syscalls;
 }

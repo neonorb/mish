@@ -18,16 +18,15 @@
 
 Code::~Code() {
 	Iterator<Bytecode*> iterator = bytecodes.iterator();
-	Bytecode* bytecode;
-	while ((bytecode = iterator.next()) != NULL) {
-		delete bytecode;
+	while (iterator.hasNext()) {
+		delete iterator.next();
 	}
 }
 
 void Code::execute() {
 	Iterator<Bytecode*> iterator = bytecodes.iterator();
-	Bytecode* bytecode;
-	while ((bytecode = iterator.next()) != NULL) {
+	while (iterator.hasNext()) {
+		Bytecode* bytecode = iterator.next();
 		switch (bytecode->instruction) {
 		case FUNC_CALL:
 			FunctionCallVoid* functionCallVoid = (FunctionCallVoid*) bytecode;

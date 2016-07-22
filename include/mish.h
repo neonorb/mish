@@ -12,10 +12,9 @@
 #include <string.h>
 #include <syscall.h>
 
+extern List<Function*> mish_syscalls;
+
 Code* mish_compile(String code);
 Code* mish_compile(String start, void* end);
-
-void mish_addSyscall(Function* syscall);
-List<Function*> mish_getSyscalls();
 
 #endif /* INCLUDE_MISH_H_ */

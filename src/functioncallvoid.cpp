@@ -21,30 +21,20 @@ FunctionCallVoid::FunctionCallVoid(Function* function,
 
 FunctionCallVoid::~FunctionCallVoid() {
 	Iterator<Expression*> iterator = arguments->iterator();
-	Expression* expression;
-	while ((expression = iterator.next()) != NULL) {
-		delete expression;
+	while (iterator.hasNext()) {
+		delete iterator.next();
 	}
 
 	delete arguments;
 }
 
 void FunctionCallVoid::call() {
-	List<Value*> returns;
+	List<Value*> evaluations;
 
 	Iterator<Expression*> expressionIterator = arguments->iterator();
-	Expression* expression;
-	while ((expression = expressionIterator.next()) != NULL) {
-		if (expression->type == FUNCTION_EXPRESSION) {
-			FunctionCallReturn* functionCallReturn =
-					(FunctionCallReturn*) expression;
-			returns.add(functionCallReturn->call());
-		} else if (expression->type == VALUE_EXPRESSION) {
-			returns.add((Value*) expression);
-		} else {
-			crash("unknown expression");
-		}
+	while (expressionIterator.hasNext()) {
+		evaluations.add(expressionIterator.next()->evaluate());
 	}
 
-	function->call(&returns);
+	function->call(&evaluations);
 }

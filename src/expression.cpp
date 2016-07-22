@@ -9,8 +9,8 @@
 #include <functioncallreturn.h>
 #include <value.h>
 
-Expression::Expression(ExpressionType type) {
-	this->type = type;
+Expression::Expression(ValueType valueType) {
+	this->valueType = valueType;
 }
 
 Expression::~Expression() {

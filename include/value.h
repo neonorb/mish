@@ -8,19 +8,15 @@
 #ifndef INCLUDE_VALUE_H_
 #define INCLUDE_VALUE_H_
 
-#include <expression.h>
 #include <string.h>
+#include <expression.h>
 
-enum ValueType {
-	STRING_VALUE
-};
-
-class Value: Expression {
+class Value: public Expression {
 public:
-	ValueType type;
-
 	Value(ValueType type);
 	virtual ~Value();
+
+	Value* evaluate();
 };
 
 class StringValue: Value {

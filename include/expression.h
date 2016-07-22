@@ -8,16 +8,19 @@
 #ifndef INCLUDE_EXPRESSION_H_
 #define INCLUDE_EXPRESSION_H_
 
-enum ExpressionType {
-	FUNCTION_EXPRESSION, VALUE_EXPRESSION
+enum ValueType {
+	VOID_VALUE, STRING_VALUE
 };
 
+class Value;
 class Expression {
 public:
-	ExpressionType type;
+	ValueType valueType;
 
-	Expression(ExpressionType type);
+	Expression(ValueType valueType);
 	virtual ~Expression();
+
+	virtual Value* evaluate();
 };
 
 #endif /* INCLUDE_EXPRESSION_H_ */

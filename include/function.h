@@ -20,8 +20,10 @@ private:
 	FunctionHandler handler;
 public:
 	String name;
+	List<ValueType>* parameterTypes;
+	ValueType returnType;
 
-	Function(String name, FunctionHandler handler);
+	Function(String name, FunctionHandler handler, List<ValueType>* parameterTypes, ValueType returnType);
 	~Function();
 
 	Value* call(List<Value*>* arguments);

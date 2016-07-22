@@ -10,8 +10,7 @@
 
 Scope::~Scope() {
 	Iterator<Function*> iterator = functions.iterator();
-	Function* function;
-	while ((function = iterator.next()) != NULL) {
-		delete function;
+	while (iterator.hasNext()) {
+		delete iterator.next();
 	}
 }
