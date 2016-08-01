@@ -131,9 +131,6 @@ Code* mish_compile(String code, void* end) {
 						function = syscallIterator.next();
 						if (strequ(function->name, syscallName)) {
 							// check parameter sizes
-							debug("arguments size", arguments.peek()->size());
-							debug("parameters size",
-									function->parameterTypes->size());
 							if (arguments.peek()->size()
 									!= function->parameterTypes->size()) {
 								continue;
@@ -147,12 +144,9 @@ Code* mish_compile(String code, void* end) {
 							while (argumentsIterator.hasNext()
 									&& parametersIterator.hasNext()) {
 								Expression* argument = argumentsIterator.next();
-								debug("argument", argument->valueType);
 								ValueType parameter = parametersIterator.next();
-								debug("parameter", parameter);
 								if (argument->valueType != parameter) {
 									// incorrect function
-									debug("incorrect function");
 									goto continueFunctionSearch;
 								}
 							}

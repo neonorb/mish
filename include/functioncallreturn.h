@@ -14,7 +14,7 @@
 #include <expression.h>
 #include <value.h>
 
-class FunctionCallReturn: Expression {
+class FunctionCallReturn: public Expression {
 public:
 	FunctionCallReturn(Function* function, List<Expression*>* arguments);
 	~FunctionCallReturn();

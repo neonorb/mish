@@ -15,3 +15,9 @@ Expression::Expression(ValueType valueType) {
 
 Expression::~Expression() {
 }
+
+Value* Expression::evaluate() {
+	crash("called expression base");
+
+	return NULL;
+}
