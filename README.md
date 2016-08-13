@@ -1,2 +1,2 @@
-# mish
-The Mish interpreter
+# Mish
+The Mish interpreter.
