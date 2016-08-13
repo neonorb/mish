@@ -15,6 +15,6 @@
 extern List<Function*> mish_syscalls;
 
 Code* mish_compile(String code);
-Code* mish_compile(String start, void* end);
+Code* mish_compile(String start, size_t size);
 
 #endif /* INCLUDE_MISH_H_ */

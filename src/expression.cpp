@@ -17,7 +17,7 @@ Expression::~Expression() {
 }
 
 Value* Expression::evaluate() {
-	crash("called expression base");
+	crash(L"called expression base");
 
 	return NULL;
 }

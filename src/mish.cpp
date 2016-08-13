@@ -15,10 +15,10 @@
 
 List<Function*> mish_syscalls;
 
-#define VALID_SYMBOL_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
+#define VALID_SYMBOL_CHARS L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
 
-#define STRING_IDENTIFIER '\''
-#define ESCAPE '\\'
+#define STRING_IDENTIFIER (wchar_t)'\''
+#define ESCAPE (wchar_t)'\\'
 
 enum ParseMode {
 	READY, SYMBOL, SYMBOL_READY, FUNCTION, STRING
@@ -27,22 +27,22 @@ enum ParseMode {
 static void assertPop(Stack<ParseMode>* stack, ParseMode expect) {
 	ParseMode popped = stack->pop();
 	if (popped != expect) {
-		debug("expected", expect);
-		debug("got", popped);
-		crash("incorrect parse mode pop");
+		debug(L"expected", expect);
+		debug(L"got", popped);
+		crash(L"incorrect parse mode pop");
 	}
 }
 
-static bool isValidSymbolChar(char c) {
-	return arrayContains<char>(VALID_SYMBOL_CHARS, strlen(VALID_SYMBOL_CHARS),
-			c);
+static bool isValidSymbolChar(wchar_t c) {
+	return arrayContains<wchar_t>(VALID_SYMBOL_CHARS,
+			strlen(VALID_SYMBOL_CHARS), c);
 }
 
 Code* mish_compile(String code) {
-	return mish_compile(code, (void*) strlen(code));
+	return mish_compile(code, strlen(code));
 }
 
-Code* mish_compile(String code, void* end) {
+Code* mish_compile(String code, size_t size) {
 	Code* compiledCode = new Code();
 
 	Stack<ParseMode> parseMode(READY);
@@ -50,11 +50,13 @@ Code* mish_compile(String code, void* end) {
 	Stack<String> symbols;
 	uint64 symbolStart;
 	String symbol;
-	List<char> string;
+	List<wchar_t> string;
 	bool escape = false;
 
-	for (uint64 i = 0; i < (uint64) end - (uint64) code; i++) {
-		char c = code[i];
+	for (uint64 i = 0; i < size; i++) {
+		wchar_t c = code[i];
+
+		//write_serial((char) c);
 
 		if (parseMode.peek() == SYMBOL && !isValidSymbolChar(c)) {
 			symbol = substring(code, symbolStart, i);
@@ -75,9 +77,9 @@ Code* mish_compile(String code, void* end) {
 			if (parseMode.peek() == STRING && c == STRING_IDENTIFIER) {
 				// end string
 				assertPop(&parseMode, STRING);
-				char* str = (char*) create(string.size() + 1);
+				wchar_t* str = (wchar_t*) create(string.size() * 2 + 1);
 
-				Iterator<char> stringIterator = string.iterator();
+				Iterator<wchar_t> stringIterator = string.iterator();
 				uint64 strIndex = 0;
 				while (stringIterator.hasNext()) {
 					str[strIndex] = stringIterator.next();
@@ -120,7 +122,7 @@ Code* mish_compile(String code, void* end) {
 
 				Bytecode* callBytecode;
 
-				if (stringStartsWith(symbol, "__")) { // check if this is a syscall
+				if (stringStartsWith(symbol, L"__")) { // check if this is a syscall
 					String syscallName = substring(symbol, 2, strlen(symbol));
 
 					Iterator<Function*> syscallIterator =
@@ -157,7 +159,7 @@ Code* mish_compile(String code, void* end) {
 					delete syscallName;
 
 					if (!found) {
-						crash("syscall not found");
+						crash(L"syscall not found");
 					}
 
 					callBytecode = (Bytecode*) new FunctionCallVoid(function,
