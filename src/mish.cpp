@@ -22,15 +22,6 @@ enum ParseMode {
 	BODY, SYMBOL, SYMBOL_READY, FUNCTION, EXPECT_ARGUMENT, STRING, PARENTHISIS
 };
 
-static void assertPop(Stack<ParseMode>* stack, ParseMode expect) {
-	ParseMode popped = stack->pop();
-	if (popped != expect) {
-		debug(L"expected", expect);
-		debug(L"got", popped);
-		crash(L"incorrect parse mode pop");
-	}
-}
-
 static bool isValidSymbolChar(wchar_t c) {
 	return arrayContains<wchar_t>(VALID_SYMBOL_CHARS,
 			strlen(VALID_SYMBOL_CHARS), c);
@@ -58,8 +49,7 @@ Code* mish_compile(String code, size_t size) {
 	for (uint64 i = 0; i < size; i++) {
 		wchar_t c = code[i];
 
-		write_serial((char) c);
-		debug(L"parse mode", parseMode.peek());
+		//write_serial((char) c);
 
 		parseChar: switch (parseMode.peek()) {
 		case BODY:
@@ -95,7 +85,8 @@ Code* mish_compile(String code, size_t size) {
 				parseMode.push(FUNCTION);
 				arguments.push(new List<Expression*>());
 			} else {
-				crash(L"unexpected character");
+				fault(L"unexpected character");
+				return NULL;
 			}
 			break;
 		case FUNCTION:
@@ -146,7 +137,8 @@ Code* mish_compile(String code, size_t size) {
 					delete syscallName;
 
 					if (!found) {
-						crash(L"syscall not found");
+						fault(L"syscall not found");
+						return NULL;
 					}
 
 					callBytecode = (Bytecode*) new FunctionCallVoid(function,
@@ -184,6 +176,7 @@ Code* mish_compile(String code, size_t size) {
 				} else {
 					string.add(c);
 				}
+				escaping = false;
 			} else {
 				if (c == '\\') {
 					escaping = true;
@@ -199,7 +192,6 @@ Code* mish_compile(String code, size_t size) {
 					str[strIndex] = NULL; // null terminate
 					string.clear();
 
-					log(L"new expression");
 					arguments.peek()->add((Expression*) new StringValue(str));
 
 					parseMode.pop();
@@ -340,7 +332,11 @@ Code* mish_compile(String code, size_t size) {
 		 }*/
 	}
 
-	assertPop(&parseMode, BODY);
+	if(parseMode.peek() != BODY) {
+		debug(L"parse mode", parseMode.pop());
+		fault(L"incorrect parse mode");
+		return NULL;
+	}
 
 	return compiledCode;
 }
