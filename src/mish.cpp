@@ -45,11 +45,18 @@ Code* mish_compile(String code, size_t size) {
 	String symbol = NULL;
 	List<wchar_t> string;
 	bool escaping = false;
+	uint64 lineBeginning = 0;
 
-	for (uint64 i = 0; i < size; i++) {
+	uint64 i = 0;
+	String errorMessage = NULL;
+	for (; i < size && errorMessage == NULL; i++) {
 		wchar_t c = code[i];
 
 		write_serial((char) c);
+
+		if(c == '\n') {
+			lineBeginning = i;
+		}
 
 		parseChar: switch (parseMode.peek()) {
 		case BODY:
@@ -85,8 +92,7 @@ Code* mish_compile(String code, size_t size) {
 				parseMode.push(FUNCTION);
 				arguments.push(new List<Expression*>());
 			} else {
-				fault(L"unexpected character");
-				return NULL;
+				errorMessage = L"unexpected character";
 			}
 			break;
 		case FUNCTION:
@@ -135,8 +141,8 @@ Code* mish_compile(String code, size_t size) {
 					delete syscallName;
 
 					if (!found) {
-						fault(L"syscall not found");
-						return NULL;
+						errorMessage = L"syscall not found";
+						break;
 					}
 
 					if (parseMode.size() > 1
@@ -162,6 +168,7 @@ Code* mish_compile(String code, size_t size) {
 				break;
 			} else if (c == ',') {
 				parseMode.push(EXPECT_ARGUMENT);
+				break;
 			}
 			// intentional fall-through
 		case EXPECT_ARGUMENT:
@@ -176,11 +183,14 @@ Code* mish_compile(String code, size_t size) {
 				}
 				parseMode.push(STRING);
 			} else if (isValidSymbolChar(c)) {
+				if (parseMode.peek() == EXPECT_ARGUMENT) {
+					parseMode.pop();
+				}
 				symbolStart = i;
 				parseMode.push(SYMBOL);
 			} else {
-				fault(L"unexpected argument");
-				return NULL;
+				errorMessage = L"unexpected argument";
+				break;
 			}
 			break;
 		case STRING:
@@ -215,140 +225,17 @@ Code* mish_compile(String code, size_t size) {
 			}
 			break;
 		}
-
-		/*if (parseMode.peek() == SYMBOL && !isValidSymbolChar(c)) {
-		 symbol = substring(code, symbolStart, i);
-		 assertPop(&parseMode, SYMBOL);
-		 parseMode.push(SYMBOL_READY);
-		 }
-
-		 if (c == STRING_IDENTIFIER || parseMode.peek() == STRING) {
-		 if (c == ESCAPE_CHAR) {
-		 // escaping
-		 escaping = true;
-		 continue;
-		 }
-
-		 if (parseMode.peek() == STRING && c == STRING_IDENTIFIER
-		 && !escaping) {
-		 // end string
-		 assertPop(&parseMode, STRING);
-		 wchar_t* str = (wchar_t*) create(string.size() * 2 + 1);
-
-		 Iterator<wchar_t> stringIterator = string.iterator();
-		 uint64 strIndex = 0;
-		 while (stringIterator.hasNext()) {
-		 str[strIndex] = stringIterator.next();
-		 strIndex++;
-		 }
-		 str[strIndex] = NULL; // null terminate
-		 string.clear();
-
-		 arguments.peek()->add((Expression*) new StringValue(str));
-		 } else if (c == STRING_IDENTIFIER && !escaping) {
-		 log(L"start string");
-		 // start string
-		 parseMode.push(STRING); // begin stringBuffer
-		 symbolStart = i + 1;
-		 } else {
-		 // add to string
-		 string.add(c);
-		 if (escaping) {
-		 // end escaping
-		 escaping = false;
-		 }
-		 }
-		 } else if (isValidSymbolChar(c)) {
-		 if (parseMode.peek() != SYMBOL) {
-		 parseMode.push(SYMBOL);
-		 log(L"symbol mode");
-		 symbolStart = i;
-		 }
-		 } else if (parseMode.peek() == FUNCTION && c == ARGUMENT_DELIMETER) {
-		 parseMode.push(EXPECT_ARGUMENT);
-		 } else if (c == '(') {
-		 if (parseMode.peek() == SYMBOL_READY) {
-		 // function symbolStart
-		 symbols.push(symbol);
-		 symbol = NULL;
-		 arguments.push(new List<Expression*>());
-
-		 assertPop(&parseMode, SYMBOL_READY);
-		 parseMode.push(FUNCTION);
-		 } else if (parseMode.peek() == EXPECT_ARGUMENT) { // open parentheses
-		 crash(L"parenthesis not implemented yet");
-		 } else {
-		 crash(L"parenthesis not expected");
-		 }
-		 } else if (c == ')') {
-		 if (parseMode.peek() == FUNCTION) {
-		 assertPop(&parseMode, FUNCTION);
-
-		 String symbol = symbols.pop();
-
-		 Bytecode* callBytecode;
-
-		 if (stringStartsWith(symbol, L"__")) { // check if this is a syscall
-		 String syscallName = substring(symbol, 2, strlen(symbol));
-
-		 Iterator<Function*> syscallIterator =
-		 mish_syscalls.iterator();
-		 Function* function;
-		 bool found = false;
-		 while (syscallIterator.hasNext() && !found) {
-		 function = syscallIterator.next();
-		 if (strequ(function->name, syscallName)) {
-		 // check parameter sizes
-		 if (arguments.peek()->size()
-		 != function->parameterTypes->size()) {
-		 continue;
-		 }
-
-		 // check parameter types
-		 Iterator<Expression*> argumentsIterator =
-		 arguments.peek()->iterator();
-		 Iterator<ValueType> parametersIterator =
-		 function->parameterTypes->iterator();
-		 while (argumentsIterator.hasNext()
-		 && parametersIterator.hasNext()) {
-		 Expression* argument = argumentsIterator.next();
-		 ValueType parameter = parametersIterator.next();
-		 if (argument->valueType != parameter) {
-		 // incorrect function
-		 goto continueFunctionSearch;
-		 }
-		 }
-		 found = true;
-		 continueFunctionSearch: continue;
-		 }
-		 }
-		 delete syscallName;
-
-		 if (!found) {
-		 crash(L"syscall not found");
-		 }
-
-		 callBytecode = (Bytecode*) new FunctionCallVoid(function,
-		 arguments.pop());
-		 } else {
-		 // function
-		 // TODO
-		 }
-		 delete symbol;
-		 compiledCode->bytecodes.add(callBytecode);
-		 } else if (parseMode.peek() == PARENTHISIS) {
-		 crash(L"parenthesis not implemented yet");
-		 } else {
-		 crash(L"argument expected");
-		 }
-		 } else if (c != ' ' && c != '\t') {
-		 crash(L"expected whitespace");
-		 }*/
 	}
 
-	if (parseMode.peek() != BODY) {
+	if (errorMessage == NULL && parseMode.peek() != BODY) {
 		debug(L"parse mode", parseMode.pop());
-		fault(L"incorrect parse mode");
+		errorMessage = L"incorrect parse mode";
+	}
+
+	if (errorMessage) {
+		String line = substring(code, lineBeginning, i);
+		fault(line);
+		fault(errorMessage);
 		return NULL;
 	}
 
