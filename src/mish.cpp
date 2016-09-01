@@ -49,7 +49,7 @@ Code* mish_compile(String code, size_t size) {
 	for (uint64 i = 0; i < size; i++) {
 		wchar_t c = code[i];
 
-		//write_serial((char) c);
+		write_serial((char) c);
 
 		parseChar: switch (parseMode.peek()) {
 		case BODY:
@@ -98,8 +98,6 @@ Code* mish_compile(String code, size_t size) {
 			if (c == ')') {
 				String symbol = symbols.pop();
 
-				Bytecode* callBytecode;
-
 				if (stringStartsWith(symbol, L"__")) { // check if this is a syscall
 					String syscallName = substring(symbol, 2, strlen(symbol));
 
@@ -141,15 +139,25 @@ Code* mish_compile(String code, size_t size) {
 						return NULL;
 					}
 
-					callBytecode = (Bytecode*) new FunctionCallVoid(function,
-							arguments.pop());
+					if (parseMode.size() > 1
+							&& (parseMode.peek(2) == EXPECT_ARGUMENT
+									|| parseMode.peek(2) == FUNCTION)) {
+						Expression* callExpression =
+								(Expression*) new FunctionCallReturn(function,
+										arguments.pop());
+						arguments.peek()->add(callExpression);
+					} else {
+						Bytecode* callBytecode =
+								(Bytecode*) new FunctionCallVoid(function,
+										arguments.pop());
+						compiledCode->bytecodes.add(callBytecode);
+					}
 
 					parseMode.pop();
 				} else {
 					// TODO regular function
 				}
 				delete symbol;
-				compiledCode->bytecodes.add(callBytecode);
 
 				break;
 			} else if (c == ',') {
@@ -167,6 +175,12 @@ Code* mish_compile(String code, size_t size) {
 					parseMode.pop();
 				}
 				parseMode.push(STRING);
+			} else if (isValidSymbolChar(c)) {
+				symbolStart = i;
+				parseMode.push(SYMBOL);
+			} else {
+				fault(L"unexpected argument");
+				return NULL;
 			}
 			break;
 		case STRING:
@@ -332,7 +346,7 @@ Code* mish_compile(String code, size_t size) {
 		 }*/
 	}
 
-	if(parseMode.peek() != BODY) {
+	if (parseMode.peek() != BODY) {
 		debug(L"parse mode", parseMode.pop());
 		fault(L"incorrect parse mode");
 		return NULL;
