@@ -52,9 +52,9 @@ Code* mish_compile(String code, size_t size) {
 	for (; i < size && errorMessage == NULL; i++) {
 		wchar_t c = code[i];
 
-		write_serial((char) c);
+		//write_serial((char) c);
 
-		if(c == '\n') {
+		if (c == '\n') {
 			lineBeginning = i;
 		}
 
@@ -66,16 +66,19 @@ Code* mish_compile(String code, size_t size) {
 			}
 
 			if (isValidSymbolChar(c)) {
+				// begin a symbol
 				symbolStart = i;
 				parseMode.push(SYMBOL);
 			}
 			break;
 		case SYMBOL:
 			if (!isValidSymbolChar(c)) {
+				// end the symbol because this isn't a valid symbol char
 				symbol = substring(code, symbolStart, i);
 				parseMode.pop();
 				parseMode.push(SYMBOL_READY);
 				goto parseChar;
+				// we havn't done anything with this char, so we have to re-parse it
 			}
 			break;
 		case SYMBOL_READY:
@@ -93,6 +96,7 @@ Code* mish_compile(String code, size_t size) {
 				arguments.push(new List<Expression*>());
 			} else {
 				errorMessage = L"unexpected character";
+				break;
 			}
 			break;
 		case FUNCTION:
@@ -104,69 +108,73 @@ Code* mish_compile(String code, size_t size) {
 			if (c == ')') {
 				String symbol = symbols.pop();
 
-				if (stringStartsWith(symbol, L"__")) { // check if this is a syscall
-					String syscallName = substring(symbol, 2, strlen(symbol));
-
-					Iterator<Function*> syscallIterator =
-							mish_syscalls.iterator();
-					Function* function = NULL;
-					bool found = false;
-					while (syscallIterator.hasNext() && !found) {
-						function = syscallIterator.next();
-						if (strequ(function->name, syscallName)) {
-							// check parameter sizes
-							if (arguments.peek()->size()
-									!= function->parameterTypes->size()) {
-								continue;
-							}
-
-							// check parameter types
-							Iterator<Expression*> argumentsIterator =
-									arguments.peek()->iterator();
-							Iterator<ValueType> parametersIterator =
-									function->parameterTypes->iterator();
-							while (argumentsIterator.hasNext()
-									&& parametersIterator.hasNext()) {
-								Expression* argument = argumentsIterator.next();
-								ValueType parameter = parametersIterator.next();
-								if (argument->valueType != parameter) {
-									// incorrect function
-									goto continueFunctionSearch;
-								}
-							}
-							found = true;
-							continueFunctionSearch: continue;
-						}
-					}
-					delete syscallName;
-
-					if (!found) {
-						errorMessage = L"syscall not found";
-						break;
-					}
-
-					if (parseMode.size() > 1
-							&& (parseMode.peek(2) == EXPECT_ARGUMENT
-									|| parseMode.peek(2) == FUNCTION)) {
-						Expression* callExpression =
-								(Expression*) new FunctionCallReturn(function,
-										arguments.pop());
-						arguments.peek()->add(callExpression);
-					} else {
-						Bytecode* callBytecode =
-								(Bytecode*) new FunctionCallVoid(function,
-										arguments.pop());
-						compiledCode->bytecodes.add(callBytecode);
-					}
-
-					parseMode.pop();
+				// determine if this is a syscall
+				List<Function*> functions;
+				if (stringStartsWith(symbol, L"__")) {
+					functions = mish_syscalls;
 				} else {
 					// TODO regular function
 				}
+
+				// search for the function
+				Iterator<Function*> functionsIterator = functions.iterator();
+				Function* function = NULL;
+				bool found = false;
+				while (functionsIterator.hasNext() && !found) {
+					function = functionsIterator.next();
+					// check function name
+					if (strequ(function->name, symbol)) {
+						// check parameter sizes
+						if (arguments.peek()->size()
+								!= function->parameterTypes->size()) {
+							continue;
+						}
+
+						// check parameter types
+						Iterator<Expression*> argumentsIterator =
+								arguments.peek()->iterator();
+						Iterator<ValueType> parametersIterator =
+								function->parameterTypes->iterator();
+						while (argumentsIterator.hasNext()
+								&& parametersIterator.hasNext()) {
+							Expression* argument = argumentsIterator.next();
+							ValueType parameter = parametersIterator.next();
+							if (argument->valueType != parameter) {
+								// incorrect function
+								goto continueFunctionSearch;
+								// we can't do labeled continues, this is a #DumbC workaround
+							}
+						}
+						found = true;
+						continueFunctionSearch: continue;
+					}
+				}
 				delete symbol;
+
+				if (!found) {
+					errorMessage = L"syscall not found";
+					break;
+				}
+
+				// add the function call to the bytecodes
+				if (parseMode.size() > 1
+						&& (parseMode.peek(2) == EXPECT_ARGUMENT
+								|| parseMode.peek(2) == FUNCTION)) {
+					Expression* callExpression =
+							(Expression*) new FunctionCallReturn(function,
+									arguments.pop());
+					arguments.peek()->add(callExpression);
+				} else {
+					Bytecode* callBytecode = (Bytecode*) new FunctionCallVoid(
+							function, arguments.pop());
+					compiledCode->bytecodes.add(callBytecode);
+				}
+
+				parseMode.pop();
 
 				break;
 			} else if (c == ',') {
+				// after a comma, there must be an argument
 				parseMode.push(EXPECT_ARGUMENT);
 				break;
 			}
@@ -177,18 +185,22 @@ Code* mish_compile(String code, size_t size) {
 				break;
 			}
 
+			// check if we are starting an expression
 			if (c == '\'') {
 				if (parseMode.peek() == EXPECT_ARGUMENT) {
 					parseMode.pop();
 				}
+				// begin string
 				parseMode.push(STRING);
 			} else if (isValidSymbolChar(c)) {
 				if (parseMode.peek() == EXPECT_ARGUMENT) {
 					parseMode.pop();
 				}
+				// begin symbol
 				symbolStart = i;
 				parseMode.push(SYMBOL);
 			} else {
+				// wtf is this character?
 				errorMessage = L"unexpected argument";
 				break;
 			}
@@ -196,17 +208,22 @@ Code* mish_compile(String code, size_t size) {
 		case STRING:
 			if (escaping) {
 				if (c == 'n') {
+					// new line escape sequence
 					string.add('\n');
 				} else {
 					string.add(c);
 				}
+				// done with escape
 				escaping = false;
 			} else {
 				if (c == '\\') {
+					// begin escape
 					escaping = true;
 				} else if (c == '\'') {
+					// end string
 					wchar_t* str = (wchar_t*) create(string.size() * 2 + 1);
 
+					// copy the list of characters to an actual string
 					Iterator<wchar_t> stringIterator = string.iterator();
 					uint64 strIndex = 0;
 					while (stringIterator.hasNext()) {
@@ -216,10 +233,12 @@ Code* mish_compile(String code, size_t size) {
 					str[strIndex] = NULL; // null terminate
 					string.clear();
 
+					// add the string to the arguments
 					arguments.peek()->add((Expression*) new StringValue(str));
 
 					parseMode.pop();
 				} else {
+					// just another character
 					string.add(c);
 				}
 			}
@@ -228,16 +247,19 @@ Code* mish_compile(String code, size_t size) {
 	}
 
 	if (errorMessage == NULL && parseMode.peek() != BODY) {
+		// something wasn't properly closed, throw a generic error for now
 		debug(L"parse mode", parseMode.pop());
 		errorMessage = L"incorrect parse mode";
 	}
 
 	if (errorMessage) {
+		// generate the error message and display it
 		String line = substring(code, lineBeginning, i);
 		fault(line);
 		fault(errorMessage);
 		return NULL;
 	}
 
+	// the code has been compiled, return it
 	return compiledCode;
 }
