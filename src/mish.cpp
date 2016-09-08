@@ -19,7 +19,14 @@ List<Function*> mish_syscalls;
 #define WHITESPACE_CHARS L" \t\n"
 
 enum ParseMode {
-	BODY, SYMBOL, SYMBOL_READY, FUNCTION, EXPECT_ARGUMENT, STRING, PARENTHISIS
+	BODY,
+	SYMBOL,
+	SYMBOL_READY,
+	FUNCTION,
+	EXPECT_ARGUMENT,
+	STRING,
+	PARENTHISIS,
+	COMMENT
 };
 
 static bool isValidSymbolChar(wchar_t c) {
@@ -69,6 +76,10 @@ Code* mish_compile(String code, size_t size) {
 				// begin a symbol
 				symbolStart = i;
 				parseMode.push(SYMBOL);
+			}
+
+			if (c == '#') {
+				parseMode.push(COMMENT);
 			}
 			break;
 		case SYMBOL:
@@ -250,10 +261,16 @@ Code* mish_compile(String code, size_t size) {
 				}
 			}
 			break;
+		case COMMENT:
+			if (c == '\n') {
+				parseMode.pop();
+			}
 		}
 	}
 
-	if (errorMessage == NULL && parseMode.peek() != BODY) {
+	ParseMode endParseMode = parseMode.peek();
+	if (errorMessage == NULL && endParseMode != BODY
+			&& endParseMode != COMMENT) {
 		// something wasn't properly closed, throw a generic error for now
 		debug(L"parse mode", parseMode.pop());
 		errorMessage = L"incorrect parse mode";
