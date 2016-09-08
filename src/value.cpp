@@ -9,15 +9,11 @@
 #include <memory.h>
 
 Value::Value(ValueType type) :
-		Expression(type) {
+		Expression(type, VALUE_EXPRESSION) {
 
 }
 
 Value::~Value() {
-}
-
-Value* Value::evaluate() {
-	return this;
 }
 
 StringValue::StringValue(String value) :

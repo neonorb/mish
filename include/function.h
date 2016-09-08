@@ -16,17 +16,15 @@
 typedef Value* (*FunctionHandler)(List<Value*>* arguments);
 
 class Function {
-private:
-	FunctionHandler handler;
 public:
 	String name;
 	List<ValueType>* parameterTypes;
 	ValueType returnType;
 
-	Function(String name, FunctionHandler handler, List<ValueType>* parameterTypes, ValueType returnType);
+	Function(String name, FunctionHandler native, List<ValueType>* parameterTypes, ValueType returnType);
 	~Function();
 
-	Value* call(List<Value*>* arguments);
+	FunctionHandler native;
 };
 
 #endif /* INCLUDE_FUNCTION_H_ */

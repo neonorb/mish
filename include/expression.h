@@ -11,16 +11,18 @@
 enum ValueType {
 	VOID_VALUE, STRING_VALUE
 };
+enum ExpressionType {
+	VALUE_EXPRESSION, FUNCTION_EXPRESSION
+};
 
 class Value;
 class Expression {
 public:
 	ValueType valueType;
+	ExpressionType expressionType;
 
-	Expression(ValueType valueType);
+	Expression(ValueType valueType, ExpressionType expressionType);
 	virtual ~Expression();
-
-	virtual Value* evaluate();
 };
 
 #endif /* INCLUDE_EXPRESSION_H_ */

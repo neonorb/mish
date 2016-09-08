@@ -27,14 +27,3 @@ FunctionCallVoid::~FunctionCallVoid() {
 
 	delete arguments;
 }
-
-void FunctionCallVoid::call() {
-	List<Value*> evaluations;
-
-	Iterator<Expression*> expressionIterator = arguments->iterator();
-	while (expressionIterator.hasNext()) {
-		evaluations.add(expressionIterator.next()->evaluate());
-	}
-
-	function->call(&evaluations);
-}

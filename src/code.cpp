@@ -22,17 +22,3 @@ Code::~Code() {
 		delete iterator.next();
 	}
 }
-
-void Code::execute() {
-	Iterator<Bytecode*> iterator = bytecodes.iterator();
-	while (iterator.hasNext()) {
-		Bytecode* bytecode = iterator.next();
-		switch (bytecode->instruction) {
-		case FUNC_CALL:
-			FunctionCallVoid* functionCallVoid = (FunctionCallVoid*) bytecode;
-			functionCallVoid->call();
-
-			break;
-		}
-	}
-}

@@ -21,8 +21,6 @@ public:
 
 	Function* function;
 	List<Expression*>* arguments;
-
-	Value* evaluate();
 };
 
 #endif /* FUNCTIONCALLRETURN_H_ */

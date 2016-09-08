@@ -9,15 +9,10 @@
 #include <functioncallreturn.h>
 #include <value.h>
 
-Expression::Expression(ValueType valueType) {
+Expression::Expression(ValueType valueType, ExpressionType expressionType) {
 	this->valueType = valueType;
+	this->expressionType = expressionType;
 }
 
 Expression::~Expression() {
-}
-
-Value* Expression::evaluate() {
-	crash(L"called expression base");
-
-	return NULL;
 }

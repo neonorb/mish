@@ -13,7 +13,7 @@
 
 FunctionCallReturn::FunctionCallReturn(Function* function,
 		List<Expression*>* arguments) :
-		Expression(function->returnType) {
+		Expression(function->returnType, FUNCTION_EXPRESSION) {
 	this->function = function;
 	this->arguments = arguments;
 }
@@ -25,16 +25,4 @@ FunctionCallReturn::~FunctionCallReturn() {
 	}
 
 	delete arguments;
-}
-
-Value* FunctionCallReturn::evaluate() {
-	List<Value*> evaluations;
-
-	Iterator<Expression*> expressionIterator = arguments->iterator();
-	while (expressionIterator.hasNext()) {
-		evaluations.add(expressionIterator.next()->evaluate());
-	}
-
-	Value* response = function->call(&evaluations);
-	return response;
 }

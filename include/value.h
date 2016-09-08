@@ -15,8 +15,6 @@ class Value: public Expression {
 public:
 	Value(ValueType type);
 	virtual ~Value();
-
-	Value* evaluate();
 };
 
 class StringValue: Value {

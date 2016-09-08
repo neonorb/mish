@@ -210,9 +210,17 @@ Code* mish_compile(String code, size_t size) {
 				if (c == 'n') {
 					// new line escape sequence
 					string.add('\n');
+				} else if (c == '\\') {
+					// backslash escape sequence
+					string.add('\\');
+				} else if (c == '\'') {
+					// quote escape sequence
+					string.add('\'');
 				} else {
-					string.add(c);
+					errorMessage = L"unrecognized escape sequence";
+					break;
 				}
+
 				// done with escape
 				escaping = false;
 			} else {
@@ -235,7 +243,6 @@ Code* mish_compile(String code, size_t size) {
 
 					// add the string to the arguments
 					arguments.peek()->add((Expression*) new StringValue(str));
-
 					parseMode.pop();
 				} else {
 					// just another character
@@ -262,4 +269,91 @@ Code* mish_compile(String code, size_t size) {
 
 	// the code has been compiled, return it
 	return compiledCode;
+}
+
+enum ExecuteMode {
+	BYTECODE_MODE, ARGUMENT_MODE
+};
+
+void mish_execute(Code* code) {
+	// stacks
+	Stack<Iterator<Bytecode*>*> callStack;
+	Stack<Iterator<Expression*>*> argumentStack;
+	Stack<List<Value*>*> evaluationsStack;
+	Stack<Function*> functionStack;
+	Stack<ExecuteMode> modeStack;
+	Value* returnValue;
+
+	// start executing on first bytecode
+	callStack.push(new Iterator<Bytecode*>(code->bytecodes.iterator()));
+	modeStack.push(BYTECODE_MODE);
+
+	while (true) {
+		if (modeStack.peek() == BYTECODE_MODE) {
+			if (callStack.peek()->hasNext()) {
+				Bytecode* bytecode = callStack.peek()->next();
+				switch (bytecode->instruction) {
+				case FUNC_CALL:
+					FunctionCallVoid* functionCallVoid =
+							(FunctionCallVoid*) bytecode;
+
+					argumentStack.push(
+							new Iterator<Expression*>(
+									functionCallVoid->arguments->iterator()));
+					evaluationsStack.push(new List<Value*>());
+					functionStack.push(functionCallVoid->function);
+					modeStack.push(ARGUMENT_MODE);
+
+					break;
+				}
+			} else {
+				// TODO end of function... if non-void function, crash system, if void function, then return
+				// for now, just end the execution
+				break;
+			}
+		} else if (modeStack.peek() == ARGUMENT_MODE) {
+			if (argumentStack.peek()->hasNext()) {
+				Expression* expression = argumentStack.peek()->next();
+				switch (expression->expressionType) {
+				case VALUE_EXPRESSION:
+					evaluationsStack.peek()->add((Value*) expression);
+					break;
+				case FUNCTION_EXPRESSION:
+					log(L"function");
+					FunctionCallReturn* functionCallReturn =
+							(FunctionCallReturn*) expression;
+
+					argumentStack.push(
+							new Iterator<Expression*>(
+									functionCallReturn->arguments->iterator()));
+					evaluationsStack.push(new List<Value*>());
+					functionStack.push(functionCallReturn->function);
+					modeStack.push(ARGUMENT_MODE);
+
+					break;
+				}
+			} else {
+				// out of arguments, call the function
+				delete argumentStack.pop();
+				List<Value*>* arguments = evaluationsStack.pop();
+
+				if (functionStack.peek()->native != NULL) {
+					returnValue = functionStack.pop()->native(arguments);
+					modeStack.pop();
+					if (modeStack.peek() == ARGUMENT_MODE) {
+						evaluationsStack.peek()->add(returnValue);
+					}
+					modeStack.push(BYTECODE_MODE);
+				} else {
+					// TODO push callStack
+				}
+
+				delete arguments;
+			}
+		} else {
+			crash(L"unknown execution mode");
+		}
+	}
+
+	delete callStack.pop();
 }

@@ -20,8 +20,6 @@ public:
 
 	List<Bytecode*> bytecodes;
 	Scope* scope;
-
-	void execute();
 };
 
 #endif /* INCLUDE_CODE_H_ */

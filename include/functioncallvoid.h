@@ -20,8 +20,6 @@ public:
 
 	Function* function;
 	List<Expression*>* arguments;
-
-	void call();
 };
 
 #endif /* FUNCTIONCALLVOID_H_ */
