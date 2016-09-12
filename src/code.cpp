@@ -21,4 +21,5 @@ Code::~Code() {
 	while (iterator.hasNext()) {
 		delete iterator.next();
 	}
+	bytecodes.clear();
 }

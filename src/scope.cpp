@@ -13,4 +13,5 @@ Scope::~Scope() {
 	while (iterator.hasNext()) {
 		delete iterator.next();
 	}
+	functions.clear();
 }

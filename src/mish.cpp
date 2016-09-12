@@ -120,15 +120,15 @@ Code* mish_compile(String code, size_t size) {
 				String symbol = symbols.pop();
 
 				// determine if this is a syscall
-				List<Function*> functions;
+				List<Function*>* functions;
 				if (stringStartsWith(symbol, L"__")) {
-					functions = mish_syscalls;
+					functions = &mish_syscalls;
 				} else {
 					// TODO regular function
 				}
 
 				// search for the function
-				Iterator<Function*> functionsIterator = functions.iterator();
+				Iterator<Function*> functionsIterator = functions->iterator();
 				Function* function = NULL;
 				bool found = false;
 				while (functionsIterator.hasNext() && !found) {
@@ -302,6 +302,7 @@ void mish_execute(Code* code) {
 	Value* returnValue;
 
 	// start executing on first bytecode
+	// TODO change this so that execution can resume and exit after every cycle
 	callStack.push(new Iterator<Bytecode*>(code->bytecodes.iterator()));
 	modeStack.push(BYTECODE_MODE);
 
@@ -326,6 +327,8 @@ void mish_execute(Code* code) {
 			} else {
 				// TODO end of function... if non-void function, crash system, if void function, then return
 				// for now, just end the execution
+				delete callStack.pop();
+				modeStack.pop();
 				break;
 			}
 		} else if (modeStack.peek() == ARGUMENT_MODE) {
@@ -336,7 +339,6 @@ void mish_execute(Code* code) {
 					evaluationsStack.peek()->add((Value*) expression);
 					break;
 				case FUNCTION_EXPRESSION:
-					log(L"function");
 					FunctionCallReturn* functionCallReturn =
 							(FunctionCallReturn*) expression;
 
@@ -353,9 +355,11 @@ void mish_execute(Code* code) {
 				// out of arguments, call the function
 				delete argumentStack.pop();
 				List<Value*>* arguments = evaluationsStack.pop();
+				Function* function = functionStack.pop();
 
-				if (functionStack.peek()->native != NULL) {
-					returnValue = functionStack.pop()->native(arguments);
+				if (function->native != NULL) {
+					returnValue = function->native(arguments);
+					// TODO delete the return value at some point
 					modeStack.pop();
 					if (modeStack.peek() == ARGUMENT_MODE) {
 						evaluationsStack.peek()->add(returnValue);
@@ -371,6 +375,4 @@ void mish_execute(Code* code) {
 			crash(L"unknown execution mode");
 		}
 	}
-
-	delete callStack.pop();
 }
