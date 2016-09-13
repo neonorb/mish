@@ -15,6 +15,8 @@ class Value: public Expression {
 public:
 	Value(ValueType type);
 	virtual ~Value();
+
+	bool isConstant = false;
 };
 
 class StringValue: Value {

@@ -42,12 +42,12 @@ Code* mish_compile(String code) {
 	return mish_compile(code, strlen(code));
 }
 
-Code* mish_compile(String code, size_t size) {
-	Code* compiledCode = new Code();
+Code* mish_compile(String sourceCode, size_t size) {
+	Code* code = new Code();
 
 	Stack<ParseMode> parseMode(BODY);
-	Stack<List<Expression*>*> arguments;
-	Stack<String> symbols;
+	Stack<List<Expression*>*> argumentsStack;
+	Stack<String> symbolStack;
 	uint64 symbolStart = NULL;
 	String symbol = NULL;
 	List<wchar_t> string;
@@ -57,7 +57,7 @@ Code* mish_compile(String code, size_t size) {
 	uint64 i = 0;
 	String errorMessage = NULL;
 	for (; i < size && errorMessage == NULL; i++) {
-		wchar_t c = code[i];
+		wchar_t c = sourceCode[i];
 
 		//write_serial((char) c);
 
@@ -85,7 +85,7 @@ Code* mish_compile(String code, size_t size) {
 		case SYMBOL:
 			if (!isValidSymbolChar(c)) {
 				// end the symbol because this isn't a valid symbol char
-				symbol = substring(code, symbolStart, i);
+				symbol = substring(sourceCode, symbolStart, i);
 				parseMode.pop();
 				parseMode.push(SYMBOL_READY);
 				goto parseChar;
@@ -100,11 +100,11 @@ Code* mish_compile(String code, size_t size) {
 
 			if (c == '(') {
 				// begin function
-				symbols.push(symbol);
+				symbolStack.push(symbol);
 				symbol = NULL;
 				parseMode.pop();
 				parseMode.push(FUNCTION);
-				arguments.push(new List<Expression*>());
+				argumentsStack.push(new List<Expression*>());
 			} else {
 				errorMessage = L"unexpected character";
 				break;
@@ -117,7 +117,7 @@ Code* mish_compile(String code, size_t size) {
 			}
 
 			if (c == ')') {
-				String symbol = symbols.pop();
+				String symbol = symbolStack.pop();
 
 				// determine if this is a syscall
 				List<Function*>* functions;
@@ -136,14 +136,14 @@ Code* mish_compile(String code, size_t size) {
 					// check function name
 					if (strequ(function->name, symbol)) {
 						// check parameter sizes
-						if (arguments.peek()->size()
+						if (argumentsStack.peek()->size()
 								!= function->parameterTypes->size()) {
 							continue;
 						}
 
 						// check parameter types
 						Iterator<Expression*> argumentsIterator =
-								arguments.peek()->iterator();
+								argumentsStack.peek()->iterator();
 						Iterator<ValueType> parametersIterator =
 								function->parameterTypes->iterator();
 						while (argumentsIterator.hasNext()
@@ -173,12 +173,12 @@ Code* mish_compile(String code, size_t size) {
 								|| parseMode.peek(2) == FUNCTION)) {
 					Expression* callExpression =
 							(Expression*) new FunctionCallReturn(function,
-									arguments.pop());
-					arguments.peek()->add(callExpression);
+									argumentsStack.pop());
+					argumentsStack.peek()->add(callExpression);
 				} else {
 					Bytecode* callBytecode = (Bytecode*) new FunctionCallVoid(
-							function, arguments.pop());
-					compiledCode->bytecodes.add(callBytecode);
+							function, argumentsStack.pop());
+					code->bytecodes.add(callBytecode);
 				}
 
 				parseMode.pop();
@@ -253,7 +253,8 @@ Code* mish_compile(String code, size_t size) {
 					string.clear();
 
 					// add the string to the arguments
-					arguments.peek()->add((Expression*) new StringValue(str));
+					argumentsStack.peek()->add(
+							(Expression*) new StringValue(str));
 					parseMode.pop();
 				} else {
 					// just another character
@@ -277,15 +278,48 @@ Code* mish_compile(String code, size_t size) {
 	}
 
 	if (errorMessage) {
+		// clear everything
+		while (parseMode.size() > 0) {
+			parseMode.pop();
+		}
+
+		while (argumentsStack.size() > 0) {
+			List<Expression*>* arguments = argumentsStack.pop();
+
+			Iterator<Expression*> argumentsIterator = arguments->iterator();
+			while (argumentsIterator.hasNext()) {
+				delete argumentsIterator.next();
+			}
+
+			delete arguments;
+		}
+
+		while (symbolStack.size() > 0) {
+			delete symbolStack.pop();
+		}
+
+		if (symbol != NULL) {
+			delete symbol;
+		}
+
+		string.clear();
+
+		delete code;
+
 		// generate the error message and display it
-		String line = substring(code, lineBeginning, i);
+		String line = substring(sourceCode, lineBeginning, i);
 		fault(line);
 		fault(errorMessage);
+
+		// delete error message stuff
+		delete line;
+		delete errorMessage;
+
 		return NULL;
 	}
 
 	// the code has been compiled, return it
-	return compiledCode;
+	return code;
 }
 
 enum ExecuteMode {
@@ -295,7 +329,7 @@ enum ExecuteMode {
 void mish_execute(Code* code) {
 	// stacks
 	Stack<Iterator<Bytecode*>*> callStack;
-	Stack<Iterator<Expression*>*> argumentStack;
+	Stack<Iterator<Expression*>*> argumentIteratorStack;
 	Stack<List<Value*>*> evaluationsStack;
 	Stack<Function*> functionStack;
 	Stack<ExecuteMode> modeStack;
@@ -315,7 +349,7 @@ void mish_execute(Code* code) {
 					FunctionCallVoid* functionCallVoid =
 							(FunctionCallVoid*) bytecode;
 
-					argumentStack.push(
+					argumentIteratorStack.push(
 							new Iterator<Expression*>(
 									functionCallVoid->arguments->iterator()));
 					evaluationsStack.push(new List<Value*>());
@@ -332,17 +366,20 @@ void mish_execute(Code* code) {
 				break;
 			}
 		} else if (modeStack.peek() == ARGUMENT_MODE) {
-			if (argumentStack.peek()->hasNext()) {
-				Expression* expression = argumentStack.peek()->next();
+			if (argumentIteratorStack.peek()->hasNext()) {
+				Expression* expression = argumentIteratorStack.peek()->next();
 				switch (expression->expressionType) {
-				case VALUE_EXPRESSION:
-					evaluationsStack.peek()->add((Value*) expression);
+				case VALUE_EXPRESSION: {
+					Value* constant = (Value*) expression;
+					constant->isConstant = true;
+					evaluationsStack.peek()->add(constant);
+				}
 					break;
 				case FUNCTION_EXPRESSION:
 					FunctionCallReturn* functionCallReturn =
 							(FunctionCallReturn*) expression;
 
-					argumentStack.push(
+					argumentIteratorStack.push(
 							new Iterator<Expression*>(
 									functionCallReturn->arguments->iterator()));
 					evaluationsStack.push(new List<Value*>());
@@ -352,24 +389,28 @@ void mish_execute(Code* code) {
 					break;
 				}
 			} else {
-				// out of arguments, call the function
-				delete argumentStack.pop();
-				List<Value*>* arguments = evaluationsStack.pop();
+				// out of evaluations, call the function
+				delete argumentIteratorStack.pop();
+				List<Value*>* evaluations = evaluationsStack.pop();
 				Function* function = functionStack.pop();
 
 				if (function->native != NULL) {
-					returnValue = function->native(arguments);
+					returnValue = function->native(evaluations);
 					// TODO delete the return value at some point
 					modeStack.pop();
 					if (modeStack.peek() == ARGUMENT_MODE) {
 						evaluationsStack.peek()->add(returnValue);
 					}
-					modeStack.push(BYTECODE_MODE);
 				} else {
 					// TODO push callStack
+					crash(L"non-native function calls not implemented yet");
 				}
 
-				delete arguments;
+				Iterator<Value*> evaluationIterator = evaluations->iterator();
+				while (evaluationIterator.hasNext()) {
+					delete evaluationIterator.next();
+				}
+				delete evaluations;
 			}
 		} else {
 			crash(L"unknown execution mode");

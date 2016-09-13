@@ -10,7 +10,6 @@
 
 Value::Value(ValueType type) :
 		Expression(type, VALUE_EXPRESSION) {
-
 }
 
 Value::~Value() {
