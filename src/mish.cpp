@@ -19,7 +19,8 @@ List<Function*> mish_syscalls;
 #define WHITESPACE_CHARS L" \t\n"
 
 enum ParseMode {
-	BODY,
+	EXPECT_STATEMENT,
+	EXPECT_STATEMENT_TERMINATOR,
 	SYMBOL,
 	SYMBOL_READY,
 	FUNCTION,
@@ -45,7 +46,7 @@ Code* mish_compile(String code) {
 Code* mish_compile(String sourceCode, size_t size) {
 	Code* code = new Code();
 
-	Stack<ParseMode> parseMode(BODY);
+	Stack<ParseMode> parseMode(EXPECT_STATEMENT);
 	Stack<List<Expression*>*> argumentsStack;
 	Stack<String> symbolStack;
 	uint64 symbolStart = NULL;
@@ -53,6 +54,7 @@ Code* mish_compile(String sourceCode, size_t size) {
 	List<wchar_t> string;
 	bool escaping = false;
 	uint64 lineBeginning = 0;
+	uint64 lineNumber = 1;
 
 	uint64 i = 0;
 	String errorMessage = NULL;
@@ -62,25 +64,36 @@ Code* mish_compile(String sourceCode, size_t size) {
 		//write_serial((char) c);
 
 		if (c == '\n') {
-			lineBeginning = i;
+			lineBeginning = i + 1;
+			lineNumber++;
 		}
 
 		parseChar: switch (parseMode.peek()) {
-		case BODY:
+		case EXPECT_STATEMENT:
 			// skip any whitespace
 			if (isWhitespace(c)) {
 				break;
-			}
-
-			if (isValidSymbolChar(c)) {
+			} else if (isValidSymbolChar(c)) {
 				// begin a symbol
 				symbolStart = i;
 				parseMode.push(SYMBOL);
+			} else if (c == '#') {
+				parseMode.push(COMMENT);
+			} else {
+				errorMessage = L"expected statement";
+				break;
+			}
+			break;
+		case EXPECT_STATEMENT_TERMINATOR:
+			if (c == ';' || c == '\n') {
+				parseMode.pop();
+			} else if (isWhitespace(c)) {
+				break;
+			} else {
+				errorMessage = L"expected statement terminator";
+				break;
 			}
 
-			if (c == '#') {
-				parseMode.push(COMMENT);
-			}
 			break;
 		case SYMBOL:
 			if (!isValidSymbolChar(c)) {
@@ -102,9 +115,11 @@ Code* mish_compile(String sourceCode, size_t size) {
 				// begin function
 				symbolStack.push(symbol);
 				symbol = NULL;
+
+				argumentsStack.push(new List<Expression*>());
+
 				parseMode.pop();
 				parseMode.push(FUNCTION);
-				argumentsStack.push(new List<Expression*>());
 			} else {
 				errorMessage = L"unexpected character";
 				break;
@@ -182,6 +197,7 @@ Code* mish_compile(String sourceCode, size_t size) {
 				}
 
 				parseMode.pop();
+				parseMode.push(EXPECT_STATEMENT_TERMINATOR);
 
 				break;
 			} else if (c == ',') {
@@ -270,8 +286,9 @@ Code* mish_compile(String sourceCode, size_t size) {
 	}
 
 	ParseMode endParseMode = parseMode.peek();
-	if (errorMessage == NULL && endParseMode != BODY
-			&& endParseMode != COMMENT) {
+	if (errorMessage == NULL && endParseMode != EXPECT_STATEMENT
+			&& endParseMode != COMMENT
+			&& endParseMode != EXPECT_STATEMENT_TERMINATOR) {
 		// something wasn't properly closed, throw a generic error for now
 		debug(L"parse mode", parseMode.pop());
 		errorMessage = L"incorrect parse mode";
@@ -309,6 +326,7 @@ Code* mish_compile(String sourceCode, size_t size) {
 		// generate the error message and display it
 		String line = substring(sourceCode, lineBeginning, i);
 		fault(line);
+		debug(L"line", lineNumber, 10);
 		fault(errorMessage);
 
 		// delete error message stuff
@@ -408,7 +426,10 @@ void mish_execute(Code* code) {
 
 				Iterator<Value*> evaluationIterator = evaluations->iterator();
 				while (evaluationIterator.hasNext()) {
-					delete evaluationIterator.next();
+					Value* value = evaluationIterator.next();
+					if (!value->isConstant) {
+						delete value;
+					}
 				}
 				delete evaluations;
 			}

@@ -19,7 +19,7 @@
 Code::~Code() {
 	Iterator<Bytecode*> iterator = bytecodes.iterator();
 	while (iterator.hasNext()) {
-		delete iterator.next();
+		Bytecode* bytecode = iterator.next();
+		delete bytecode;
 	}
-	bytecodes.clear();
 }
