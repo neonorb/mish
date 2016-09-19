@@ -16,10 +16,18 @@
 #include <value.h>
 #include <log.h>
 
+Code::Code() {
+	bytecodes = new List<Bytecode*>();
+	scope = new Scope();
+}
+
 Code::~Code() {
-	Iterator<Bytecode*> iterator = bytecodes.iterator();
+	Iterator<Bytecode*> iterator = bytecodes->iterator();
 	while (iterator.hasNext()) {
 		Bytecode* bytecode = iterator.next();
 		delete bytecode;
 	}
+	delete bytecodes;
+
+	delete scope;
 }

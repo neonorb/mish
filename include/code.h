@@ -16,9 +16,10 @@
 class Scope;
 class Code {
 public:
+	Code();
 	~Code();
 
-	List<Bytecode*> bytecodes;
+	List<Bytecode*>* bytecodes;
 	Scope* scope;
 };
 
