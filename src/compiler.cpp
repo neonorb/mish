@@ -370,6 +370,8 @@ Code* mish_compile(String sourceCode, size_t size) {
 		delete errorPositionMarker;
 		delete errorMessage;
 
+		delete state->code;
+		delete state;
 		return NULL;
 	}
 
