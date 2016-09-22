@@ -14,7 +14,7 @@
 
 FunctionCallVoid::FunctionCallVoid(Function* function,
 		List<Expression*>* arguments) :
-		Bytecode(FUNC_CALL) {
+		Bytecode(FUNC_CALL_INSTRUCTION) {
 	this->function = function;
 	this->arguments = arguments;
 }

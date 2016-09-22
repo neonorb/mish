@@ -11,20 +11,35 @@
 #include <string.h>
 #include <expression.h>
 
+// value
 class Value: public Expression {
 public:
 	Value(ValueType type);
 	virtual ~Value();
 
-	bool isConstant = false;
+	bool isConstant;
 };
 
-class StringValue: Value {
+// string
+class StringValue: public Value {
 public:
 	StringValue(String value);
 	~StringValue();
 
 	String value;
 };
+
+// boolean
+class BooleanValue: public Value {
+public:
+	BooleanValue(bool value);
+	BooleanValue(bool value, bool isConstant);
+	~BooleanValue();
+
+	bool value;
+};
+
+extern BooleanValue* BOOLEAN_TRUE;
+extern BooleanValue* BOOLEAN_FALSE;
 
 #endif /* INCLUDE_VALUE_H_ */

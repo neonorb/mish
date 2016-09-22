@@ -14,7 +14,7 @@
 void mish_execute(Code* code);
 
 enum ExecuteMode {
-	BYTECODE_MODE, ARGUMENT_MODE
+	BYTECODE_MODE, ARGUMENT_MODE, WHILE_MODE
 };
 
 class ExecuterState {
@@ -31,6 +31,8 @@ public:
 
 	Stack<Function*>* functionStack;
 	Value* returnValue;
+
+	Stack<WhileBytecode*>* whileBytecodeStack;
 };
 
 #endif /* INCLUDE_EXECUTER_H_ */

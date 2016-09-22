@@ -8,15 +8,17 @@
 #ifndef INCLUDE_SCOPE_H_
 #define INCLUDE_SCOPE_H_
 
+class Scope;
+
 #include <list.h>
 #include <function.h>
 
-class Function;
 class Scope {
 public:
+	Scope();
 	~Scope();
 
-	Scope* parent = NULL;
+	Scope* parent;
 
 	List<Function*> functions;
 	// TODO classes

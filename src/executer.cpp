@@ -17,6 +17,8 @@ ExecuterState::ExecuterState() {
 
 	functionStack = new Stack<Function*>();
 	returnValue = NULL;
+
+	whileBytecodeStack = new Stack<WhileBytecode*>();
 }
 
 ExecuterState::~ExecuterState() {
@@ -61,7 +63,7 @@ ExecuteStatus execute(ExecuterState* state) {
 		if (state->callStack->peek()->hasNext()) {
 			Bytecode* bytecode = state->callStack->peek()->next();
 			switch (bytecode->instruction) {
-			case FUNC_CALL:
+			case FUNC_CALL_INSTRUCTION: {
 				FunctionCallVoid* functionCallVoid =
 						(FunctionCallVoid*) bytecode;
 
@@ -71,6 +73,18 @@ ExecuteStatus execute(ExecuterState* state) {
 				state->evaluationsStack->push(new List<Value*>());
 				state->functionStack->push(functionCallVoid->function);
 				state->modeStack->push(ARGUMENT_MODE);
+			}
+
+				break;
+			case WHILE_INSTRUCTION:
+				WhileBytecode* whileBytecode = (WhileBytecode*) bytecode;
+
+				state->argumentIteratorStack->push(
+						new Iterator<Expression*>(
+								whileBytecode->condition->iterator()));
+				state->evaluationsStack->push(new List<Value*>());
+				state->whileBytecodeStack->push(whileBytecode);
+				state->modeStack->push(WHILE_MODE);
 
 				break;
 			}
@@ -79,7 +93,10 @@ ExecuteStatus execute(ExecuterState* state) {
 			// for now, just end the execution
 			delete state->callStack->pop();
 			state->modeStack->pop();
-			return DONE;
+
+			if (state->modeStack->size() == 0) {
+				return DONE;
+			}
 		}
 	} else if (state->modeStack->peek() == ARGUMENT_MODE) {
 		if (state->argumentIteratorStack->peek()->hasNext()) {
@@ -88,7 +105,6 @@ ExecuteStatus execute(ExecuterState* state) {
 			switch (expression->expressionType) {
 			case VALUE_EXPRESSION: {
 				Value* constant = (Value*) expression;
-				constant->isConstant = true;
 				state->evaluationsStack->peek()->add(constant);
 			}
 				break;
@@ -106,21 +122,40 @@ ExecuteStatus execute(ExecuterState* state) {
 				break;
 			}
 		} else {
-			// out of evaluations, call the function
+			// out of evaluations
 			delete state->argumentIteratorStack->pop();
 			List<Value*>* evaluations = state->evaluationsStack->pop();
-			Function* function = state->functionStack->pop();
+			state->modeStack->pop();
+			if (state->modeStack->peek() == BYTECODE_MODE
+					|| state->modeStack->peek() == ARGUMENT_MODE) {
+				Function* function = state->functionStack->pop();
 
-			if (function->native != NULL) {
-				state->returnValue = function->native(evaluations);
-				// TODO delete the return value at some point
-				state->modeStack->pop();
-				if (state->modeStack->peek() == ARGUMENT_MODE) {
-					state->evaluationsStack->peek()->add(state->returnValue);
+				if (function->native != NULL) {
+					state->returnValue = function->native(evaluations);
+					// TODO delete the return value at some point
+					if (state->modeStack->peek() == ARGUMENT_MODE) {
+						state->evaluationsStack->peek()->add(
+								state->returnValue);
+					}
+				} else {
+					state->modeStack->push(BYTECODE_MODE);
+					state->callStack->push(
+							new Iterator<Bytecode*>(
+									function->code->bytecodes->iterator()));
+				}
+			} else if (state->modeStack->peek() == WHILE_MODE) {
+				BooleanValue* condition = (BooleanValue*) evaluations->get(0);
+				if (condition->value) {
+					state->modeStack->push(BYTECODE_MODE);
+					state->callStack->push(
+							new Iterator<Bytecode*>(
+									state->whileBytecodeStack->peek()->code->bytecodes->iterator()));
+				} else {
+					state->modeStack->pop();
+					state->callStack->pop();
 				}
 			} else {
-				// TODO push callStack
-				crash(L"non-native function calls not implemented yet");
+				crash(L"unexpected execution mode");
 			}
 
 			Iterator<Value*> evaluationIterator = evaluations->iterator();
@@ -132,6 +167,8 @@ ExecuteStatus execute(ExecuterState* state) {
 			}
 			delete evaluations;
 		}
+	} else if (state->modeStack->peek() == WHILE_MODE) {
+		state->modeStack->push(ARGUMENT_MODE);
 	} else {
 		// TODO fault as error in Mish and continue
 		crash(L"unknown execution mode");
@@ -141,6 +178,7 @@ ExecuteStatus execute(ExecuterState* state) {
 }
 
 void mish_execute(Code* code) {
+	log(L"executing");
 	ExecuterState* state = new ExecuterState();
 
 	// start executing on first bytecode

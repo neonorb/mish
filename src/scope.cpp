@@ -8,6 +8,10 @@
 #include <scope.h>
 #include <memory.h>
 
+Scope::Scope() {
+	parent = NULL;
+}
+
 Scope::~Scope() {
 	Iterator<Function*> iterator = functions.iterator();
 	while (iterator.hasNext()) {

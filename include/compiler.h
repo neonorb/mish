@@ -21,7 +21,10 @@ enum ParseMode {
 	EXPECT_ARGUMENT,
 	STRING,
 	PARENTHISIS,
-	COMMENT
+	COMMENT,
+	WHILE,
+	EXPECT_BLOCK,
+	EXPRESSION
 };
 
 class CompilerState {
@@ -29,7 +32,7 @@ public:
 	CompilerState();
 	~CompilerState();
 
-	Code* code;
+	Stack<Code*>* codeStack;
 
 	Stack<ParseMode>* mode;
 
@@ -40,5 +43,8 @@ public:
 
 	List<wchar_t>* string;bool escaping;
 };
+
+Code* mish_compile(String code);
+Code* mish_compile(String start, size_t size);
 
 #endif /* INCLUDE_COMPILER_H_ */

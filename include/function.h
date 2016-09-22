@@ -8,6 +8,8 @@
 #ifndef INCLUDE_FUNCTION_H_
 #define INCLUDE_FUNCTION_H_
 
+class Function;
+
 #include <code.h>
 #include <list.h>
 #include <expression.h>
@@ -21,10 +23,13 @@ public:
 	List<ValueType>* parameterTypes;
 	ValueType returnType;
 
-	Function(String name, FunctionHandler native, List<ValueType>* parameterTypes, ValueType returnType);
-	~Function();
-
 	FunctionHandler native;
+	Code* code;
+
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType, Code* code, FunctionHandler native);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType, Code* code);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType, FunctionHandler native);
+	~Function();
 };
 
 #endif /* INCLUDE_FUNCTION_H_ */
