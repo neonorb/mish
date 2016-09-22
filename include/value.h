@@ -24,6 +24,7 @@ public:
 class StringValue: public Value {
 public:
 	StringValue(String value);
+	StringValue(String value, bool isConstant);
 	~StringValue();
 
 	String value;
@@ -38,8 +39,5 @@ public:
 
 	bool value;
 };
-
-extern BooleanValue* BOOLEAN_TRUE;
-extern BooleanValue* BOOLEAN_FALSE;
 
 #endif /* INCLUDE_VALUE_H_ */

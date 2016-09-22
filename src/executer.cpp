@@ -48,10 +48,11 @@ ExecuterState::~ExecuterState() {
 	delete evaluationsStack;
 
 	delete functionStack;
-
 	if (returnValue != NULL) {
 		delete returnValue;
 	}
+
+	delete whileBytecodeStack;
 }
 
 enum ExecuteStatus {
@@ -79,10 +80,6 @@ ExecuteStatus execute(ExecuterState* state) {
 			case WHILE_INSTRUCTION:
 				WhileBytecode* whileBytecode = (WhileBytecode*) bytecode;
 
-				state->argumentIteratorStack->push(
-						new Iterator<Expression*>(
-								whileBytecode->condition->iterator()));
-				state->evaluationsStack->push(new List<Value*>());
 				state->whileBytecodeStack->push(whileBytecode);
 				state->modeStack->push(WHILE_MODE);
 
@@ -142,6 +139,9 @@ ExecuteStatus execute(ExecuterState* state) {
 					state->callStack->push(
 							new Iterator<Bytecode*>(
 									function->code->bytecodes->iterator()));
+					// TODO evaluate and call function
+					crash(L"regular functions not implemented yet");
+					return NOT_DONE; // don't delete evaluations
 				}
 			} else if (state->modeStack->peek() == WHILE_MODE) {
 				BooleanValue* condition = (BooleanValue*) evaluations->get(0);
@@ -151,8 +151,8 @@ ExecuteStatus execute(ExecuterState* state) {
 							new Iterator<Bytecode*>(
 									state->whileBytecodeStack->peek()->code->bytecodes->iterator()));
 				} else {
+					state->whileBytecodeStack->pop();
 					state->modeStack->pop();
-					state->callStack->pop();
 				}
 			} else {
 				crash(L"unexpected execution mode");
@@ -168,6 +168,10 @@ ExecuteStatus execute(ExecuterState* state) {
 			delete evaluations;
 		}
 	} else if (state->modeStack->peek() == WHILE_MODE) {
+		state->argumentIteratorStack->push(
+				new Iterator<Expression*>(
+						state->whileBytecodeStack->peek()->condition->iterator()));
+		state->evaluationsStack->push(new List<Value*>());
 		state->modeStack->push(ARGUMENT_MODE);
 	} else {
 		// TODO fault as error in Mish and continue
@@ -178,7 +182,6 @@ ExecuteStatus execute(ExecuterState* state) {
 }
 
 void mish_execute(Code* code) {
-	log(L"executing");
 	ExecuterState* state = new ExecuterState();
 
 	// start executing on first bytecode

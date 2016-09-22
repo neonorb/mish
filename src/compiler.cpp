@@ -16,6 +16,7 @@ CompilerState::CompilerState() {
 
 	mode = new Stack<ParseMode>();
 
+	requireExpression = false;
 	argumentsStack = new Stack<List<Expression*>*>();
 
 	symbol = new List<wchar_t>();
@@ -93,10 +94,11 @@ static String processCharacter(char c, CompilerState* state) {
 
 			state->mode->pop();
 			if (state->mode->peek() == WHILE) {
+				state->mode->pop();
 				// close a while loop
 				Code* whileCode = state->codeStack->pop();
 				List<Expression*>* arguments = state->argumentsStack->pop();
-				if (arguments->size() > 0) {
+				if (arguments->size() > 1) {
 					crash(L"while loop should only have one argument");
 				}
 				state->codeStack->peek()->bytecodes->add(
@@ -140,19 +142,15 @@ static String processCharacter(char c, CompilerState* state) {
 
 			state->mode->pop();
 
-			if (state->mode->size() > 1 && state->mode->peek(2) == EXPRESSION) {
-				if (strequ(sym, L"true")) {
-					log(L"adding true");
-					state->argumentsStack->peek()->add(BOOLEAN_TRUE);
-				} else if (strequ(sym, L"false")) {
-					state->argumentsStack->peek()->add(BOOLEAN_FALSE);
-				} else {
-					// TODO access variable
-					crash(L"variables not implemented yet");
-				}
+			if (strequ(sym, L"true")) {
+				state->argumentsStack->peek()->add(
+						new BooleanValue(true, true));
+				delete sym;
+			} else if (strequ(sym, L"false")) {
+				state->argumentsStack->peek()->add(
+						new BooleanValue(false, true));
 				delete sym;
 			} else {
-				log(L"pushing symbol");
 				state->mode->push(SYMBOL_READY);
 				state->symbolStack->push(sym);
 			}
@@ -169,19 +167,20 @@ static String processCharacter(char c, CompilerState* state) {
 
 		if (c == '(') {
 			if (strequ(state->symbolStack->peek(), L"while")) {
-				log(L"begun while");
 				delete state->symbolStack->pop();
 
 				state->argumentsStack->push(new List<Expression*>());
 
 				state->mode->pop();
 				state->mode->push(WHILE);
+				state->mode->push(EXPRESSION);
 			} else {
-				// begin function
+				// begin functionSTRING_VALUE
 				state->argumentsStack->push(new List<Expression*>());
 
 				state->mode->pop();
 				state->mode->push(FUNCTION);
+				state->mode->push(EXPRESSION);
 			}
 		} else {
 			return L"unexpected character";
@@ -193,13 +192,28 @@ static String processCharacter(char c, CompilerState* state) {
 			break;
 		}
 
-		if (isValidSymbolChar(c)) {
+		if (c == '\'') {
+			// begin string
+			state->mode->push(STRING);
+			state->requireExpression = false;
+		} else if (isValidSymbolChar(c)) {
 			state->mode->push(SYMBOL);
+			state->requireExpression = false;
 			goto parseChar;
-		} else if (c == ')') {
-			state->mode->pop();
+		} else if (c == '(') {
+			state->mode->push(REQUIRE_CLOSE_EXPRESSION);
+			state->mode->push(EXPRESSION);
+			// TODO open expression
 		} else {
-			return L"unexpected character";
+			if (state->mode->peek(1) == REQUIRE_CLOSE_EXPRESSION) {
+				return L"expression needs to be closed";
+			} else if (state->requireExpression) {
+				return L"expression expected";
+			}
+
+			state->mode->pop();
+			state->requireExpression = false;
+			goto parseChar;
 		}
 		break;
 	case FUNCTION:
@@ -261,7 +275,7 @@ static String processCharacter(char c, CompilerState* state) {
 
 			// add the function call to the bytecodes
 			if (state->mode->size() > 1
-					&& (state->mode->peek(1) == EXPECT_ARGUMENT
+					&& (state->mode->peek(1) == EXPRESSION
 							|| state->mode->peek(1) == FUNCTION)) {
 				Expression* callExpression =
 						(Expression*) new FunctionCallReturn(function,
@@ -279,37 +293,9 @@ static String processCharacter(char c, CompilerState* state) {
 			break;
 		} else if (c == ',') {
 			// after a comma, there must be an argument
-			state->mode->push(EXPECT_ARGUMENT);
-			break;
+			state->requireExpression = true;
 		}
-		goto expectArgument;
-		break;
-	case EXPECT_ARGUMENT:
-		expectArgument:
-		// skip any whitespace
-		if (isWhitespace(c)) {
-			break;
-		}
-
-		// check if we are starting an expression
-		if (c == '\'') {
-			if (state->mode->peek() == EXPECT_ARGUMENT) {
-				state->mode->pop();
-			}
-			// begin string
-			state->mode->push(STRING);
-		} else if (isValidSymbolChar(c)) {
-			if (state->mode->peek() == EXPECT_ARGUMENT) {
-				state->mode->pop();
-			}
-			// begin symbol
-			state->mode->push(SYMBOL);
-			goto parseChar;
-		} else {
-			// wtf is this character?
-			return L"unexpected argument";
-			break;
-		}
+		state->mode->push(EXPRESSION);
 		break;
 	case STRING:
 		if (state->escaping) {
@@ -348,7 +334,7 @@ static String processCharacter(char c, CompilerState* state) {
 				state->string->clear();
 
 				// add the string to the arguments
-				Value* stringConstant = new StringValue(str);
+				Value* stringConstant = new StringValue(str, true);
 				stringConstant->isConstant = true;
 				state->argumentsStack->peek()->add(
 						(Expression*) stringConstant);
@@ -378,12 +364,11 @@ static String processCharacter(char c, CompilerState* state) {
 				crash(L"argument size is greater than 1");
 			}
 
-			state->mode->pop();
 			state->mode->push(EXPECT_BLOCK);
 			break;
+		} else {
+			return L"unexpected character to end while";
 		}
-
-		goto expectArgument;
 		break;
 	case EXPECT_BLOCK:
 		// skip any whitespace
@@ -392,6 +377,7 @@ static String processCharacter(char c, CompilerState* state) {
 		}
 
 		if (c == '{') {
+			state->mode->pop();
 			state->mode->push(EXPECT_STATEMENT);
 			state->codeStack->push(new Code());
 		} else {
@@ -426,7 +412,7 @@ Code* mish_compile(String sourceCode, size_t size) {
 	for (; i < size; i++) {
 		// get the next char to process
 		wchar_t c = sourceCode[i];
-		write_serial(c);
+		//write_serial(c);
 
 		if (c == '\n') {
 			if (hasError) {
@@ -459,6 +445,7 @@ Code* mish_compile(String sourceCode, size_t size) {
 		// something wasn't properly closed, throw a generic error for now
 		debug(L"parse mode", state->mode->pop());
 		errorMessage = L"incorrect parse mode";
+		hasError = true;
 	}
 
 	if (hasError) {

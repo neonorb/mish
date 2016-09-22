@@ -11,9 +11,7 @@
 // value
 Value::Value(ValueType type) :
 		Expression(type, VALUE_EXPRESSION) {
-	if (isConstant != true) {
-		isConstant = false;
-	}
+	isConstant = false;
 }
 
 Value::~Value() {
@@ -23,6 +21,11 @@ Value::~Value() {
 StringValue::StringValue(String value) :
 		Value(STRING_VALUE) {
 	this->value = value;
+}
+
+StringValue::StringValue(String value, bool isConstant) :
+		StringValue(value) {
+	this->isConstant = isConstant;
 }
 
 StringValue::~StringValue() {
@@ -35,13 +38,10 @@ BooleanValue::BooleanValue(bool value) :
 	this->value = value;
 }
 
-BooleanValue::BooleanValue(bool value, bool isConstant):BooleanValue(value){
-	isConstant = true;
+BooleanValue::BooleanValue(bool value, bool isConstant) :
+		BooleanValue(value) {
+	this->isConstant = isConstant;
 }
 
 BooleanValue::~BooleanValue() {
-
 }
-
-BooleanValue* BOOLEAN_TRUE = new BooleanValue(true, true);
-BooleanValue* BOOLEAN_FALSE = new BooleanValue(false, true);

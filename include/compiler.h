@@ -18,13 +18,13 @@ enum ParseMode {
 	SYMBOL,
 	SYMBOL_READY,
 	FUNCTION,
-	EXPECT_ARGUMENT,
 	STRING,
 	PARENTHISIS,
 	COMMENT,
 	WHILE,
 	EXPECT_BLOCK,
-	EXPRESSION
+	EXPRESSION,
+	REQUIRE_CLOSE_EXPRESSION
 };
 
 class CompilerState {
@@ -36,6 +36,7 @@ public:
 
 	Stack<ParseMode>* mode;
 
+	bool requireExpression;
 	Stack<List<Expression*>*>* argumentsStack;
 
 	List<wchar_t>* symbol;

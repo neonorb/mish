@@ -28,7 +28,7 @@ public:
 	Code* code;
 
 	WhileBytecode(List<Expression*>* condition, Code* code);
-	~WhileBytecode();
+	virtual ~WhileBytecode();
 };
 
 #endif /* INCLUDE_BYTECODE_H_ */

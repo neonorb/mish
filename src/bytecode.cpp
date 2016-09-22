@@ -22,3 +22,16 @@ WhileBytecode::WhileBytecode(List<Expression*>* condition, Code* code) :
 	this->condition = condition;
 	this->code = code;
 }
+
+WhileBytecode::~WhileBytecode() {
+	// condition
+	if (condition->size() != 1) {
+		crash(
+				L"condition has inappropriate size while destructing WhileBytecode");
+	}
+	delete condition->remove((uint64) 0);
+	delete condition;
+
+	// code
+	delete code;
+}
