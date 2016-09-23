@@ -8,10 +8,14 @@
 #ifndef INCLUDE_EXECUTER_H_
 #define INCLUDE_EXECUTER_H_
 
+class ExecuterState;
+
 #include <mish.h>
 #include <stack.h>
 
-void mish_execute(Code* code);
+enum ExecuteStatus {
+	DONE, NOT_DONE
+};
 
 enum ExecuteMode {
 	BYTECODE_MODE, ARGUMENT_MODE, WHILE_MODE
@@ -34,5 +38,8 @@ public:
 
 	Stack<WhileBytecode*>* whileBytecodeStack;
 };
+
+void mish_execute(Code* code);
+ExecuteStatus mish_execute(ExecuterState* state);
 
 #endif /* INCLUDE_EXECUTER_H_ */

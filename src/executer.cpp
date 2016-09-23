@@ -55,11 +55,7 @@ ExecuterState::~ExecuterState() {
 	delete whileBytecodeStack;
 }
 
-enum ExecuteStatus {
-	DONE, NOT_DONE
-};
-
-ExecuteStatus execute(ExecuterState* state) {
+ExecuteStatus mish_execute(ExecuterState* state) {
 	if (state->modeStack->peek() == BYTECODE_MODE) {
 		if (state->callStack->peek()->hasNext()) {
 			Bytecode* bytecode = state->callStack->peek()->next();
@@ -191,7 +187,7 @@ void mish_execute(Code* code) {
 	state->modeStack->push(BYTECODE_MODE);
 
 	while (true) {
-		ExecuteStatus status = execute(state);
+		ExecuteStatus status = mish_execute(state);
 		if (status == DONE) {
 			break;
 		}

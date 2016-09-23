@@ -2,7 +2,7 @@
 
 NAME=mish
 
-CSOURCES=bytecode expression functioncallvoid mish compiler executer syscall code functioncallreturn function scope value
+CSOURCES=bytecode expression functioncallvoid mish compiler executer scheduler syscall code functioncallreturn function scope value thread
 ASOURCES=
 
 LIBS=feta

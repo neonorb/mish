@@ -16,6 +16,7 @@
 
 #include <compiler.h>
 #include <executer.h>
+#include <scheduler.h>
 
 extern List<Function*> mish_syscalls;
 
