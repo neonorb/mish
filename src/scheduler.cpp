@@ -43,3 +43,4 @@ void mish_killThread(Thread* thread) {
 void mish_spawnThread(Thread* thread) {
 	mish_threads.add(thread);
 }
+
