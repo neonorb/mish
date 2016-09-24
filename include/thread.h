@@ -14,13 +14,19 @@ class Thread;
 
 typedef void (*OnThreadExit)(Thread*);
 
+enum ThreadPriority {
+	BACKGROUND, // will pause between executions
+	ACTIVE, // will not pause between executions
+};
+
 class Thread {
 public:
-	Thread(Code* code);
+	Thread(Code* code, ThreadPriority priority);
 	~Thread();
 
 	Code* code;
 	ExecuterState* state;
+	ThreadPriority priority;
 
 	OnThreadExit onThreadExit;
 };

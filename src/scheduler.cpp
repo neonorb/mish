@@ -9,6 +9,44 @@
 
 List<Thread*> mish_threads;
 
+// thread counts
+uint64 mish_threadCount() {
+	uint64 threadCount = 0;
+
+	Iterator<Thread*> threadIterator = mish_threads.iterator();
+	while (threadIterator.hasNext()) {
+			threadCount++;
+	}
+
+	return threadCount;
+}
+uint64 mish_activeThreadCount() {
+	uint64 activeThreadCount = 0;
+
+	Iterator<Thread*> threadIterator = mish_threads.iterator();
+	while (threadIterator.hasNext()) {
+		if (threadIterator.next()->priority == ACTIVE) {
+			activeThreadCount++;
+		}
+	}
+
+	return activeThreadCount;
+}
+uint64 mish_backgroundThreadCount() {
+	uint64 backgroundThreadCount = 0;
+
+	Iterator<Thread*> threadIterator = mish_threads.iterator();
+	while (threadIterator.hasNext()) {
+		if (threadIterator.next()->priority == BACKGROUND) {
+			backgroundThreadCount++;
+		}
+	}
+
+	return backgroundThreadCount;
+}
+
+// scheduler
+
 void mish_runScheduler() {
 	List<Thread*> removedThreads;
 

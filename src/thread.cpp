@@ -7,13 +7,15 @@
 
 #include <thread.h>
 
-Thread::Thread(Code* code) {
+Thread::Thread(Code* code, ThreadPriority priority) {
 	this->code = code;
 
 	state = new ExecuterState();
 	state->callStack->push(
 			new Iterator<Bytecode*>(code->bytecodes->iterator()));
 	state->modeStack->push(BYTECODE_MODE);
+
+	this->priority = priority;
 
 	onThreadExit = NULL;
 }
