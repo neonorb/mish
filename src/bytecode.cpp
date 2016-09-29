@@ -16,14 +16,15 @@ Bytecode::Bytecode(Instruction instruction) {
 Bytecode::~Bytecode() {
 }
 
-// while bytecode
-WhileBytecode::WhileBytecode(List<Expression*>* condition, Code* code) :
-		Bytecode(WHILE_INSTRUCTION) {
+// conditional bytecode
+ConditionalBytecode::ConditionalBytecode(List<Expression*>* condition, Code* code, ConditionalBytecodeType type) :
+		Bytecode(CONDITIONAL_INSTRUCTION) {
 	this->condition = condition;
 	this->code = code;
+	this->type = type;
 }
 
-WhileBytecode::~WhileBytecode() {
+ConditionalBytecode::~ConditionalBytecode() {
 	// condition
 	if (condition->size() != 1) {
 		crash(

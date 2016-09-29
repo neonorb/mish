@@ -24,6 +24,8 @@ CompilerState::CompilerState() {
 
 	string = new List<wchar_t>();
 	escaping = false;
+
+	conditionalTypeStack = new Stack<ConditionalBytecodeType>();
 }
 
 CompilerState::~CompilerState() {
@@ -58,6 +60,8 @@ CompilerState::~CompilerState() {
 
 	// string
 	delete string;
+
+	delete conditionalTypeStack;
 }
 
 static bool isValidSymbolChar(wchar_t c) {
@@ -93,7 +97,7 @@ static String processCharacter(char c, CompilerState* state) {
 			}
 
 			state->mode->pop();
-			if (state->mode->peek() == WHILE) {
+			if (state->mode->peek() == LOOP) {
 				state->mode->pop();
 				// close a while loop
 				Code* whileCode = state->codeStack->pop();
@@ -102,7 +106,8 @@ static String processCharacter(char c, CompilerState* state) {
 					crash(L"while loop should only have one argument");
 				}
 				state->codeStack->peek()->bytecodes->add(
-						new WhileBytecode(arguments, whileCode));
+						new ConditionalBytecode(arguments, whileCode,
+								state->conditionalTypeStack->pop()));
 				break;
 			} else {
 				crash(L"unexpected mode after closing block");
@@ -172,10 +177,22 @@ static String processCharacter(char c, CompilerState* state) {
 				state->argumentsStack->push(new List<Expression*>());
 
 				state->mode->pop();
-				state->mode->push(WHILE);
+				state->mode->push(LOOP);
 				state->mode->push(EXPRESSION);
+
+				state->conditionalTypeStack->push(WHILE_CONDITIONALTYPE);
+			} else if (strequ(state->symbolStack->peek(), L"if")) {
+				delete state->symbolStack->pop();
+
+				state->argumentsStack->push(new List<Expression*>());
+
+				state->mode->pop();
+				state->mode->push(LOOP);
+				state->mode->push(EXPRESSION);
+
+				state->conditionalTypeStack->push(IF_CONDITIONALTYPE);
 			} else {
-				// begin functionSTRING_VALUE
+				// begin function
 				state->argumentsStack->push(new List<Expression*>());
 
 				state->mode->pop();
@@ -302,6 +319,7 @@ static String processCharacter(char c, CompilerState* state) {
 			if (c == 'n') {
 				// new line escape sequence
 				state->string->add('\n');
+				state->string->add('\r');
 			} else if (c == '\\') {
 				// backslash escape sequence
 				state->string->add('\\');
@@ -350,7 +368,7 @@ static String processCharacter(char c, CompilerState* state) {
 			state->mode->pop();
 		}
 		break;
-	case WHILE:
+	case LOOP:
 		// skip any whitespace
 		if (isWhitespace(c)) {
 			break;
@@ -359,7 +377,7 @@ static String processCharacter(char c, CompilerState* state) {
 		if (c == ')') {
 			int argumentsSize = state->argumentsStack->peek()->size();
 			if (argumentsSize == 0) {
-				return L"while needs a condition";
+				return L"statement needs a condition";
 			} else if (argumentsSize > 1) {
 				crash(L"argument size is greater than 1");
 			}

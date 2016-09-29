@@ -8,7 +8,7 @@
 #ifndef INCLUDE_BYTECODE_H_
 #define INCLUDE_BYTECODE_H_
 
-class WhileBytecode;
+class ConditionalBytecode;
 
 #include <instruction.h>
 
@@ -20,15 +20,21 @@ public:
 	virtual ~Bytecode();
 };
 
+enum ConditionalBytecodeType {
+	WHILE_CONDITIONALTYPE, IF_CONDITIONALTYPE, DOWHILE_CONDITIONALTYPE
+};
+
 #include <mish.h>
 
-class WhileBytecode: public Bytecode {
+class ConditionalBytecode: public Bytecode {
 public:
 	List<Expression*>* condition;
 	Code* code;
+	ConditionalBytecodeType type;
 
-	WhileBytecode(List<Expression*>* condition, Code* code);
-	virtual ~WhileBytecode();
+	ConditionalBytecode(List<Expression*>* condition, Code* code,
+			ConditionalBytecodeType type);
+	virtual ~ConditionalBytecode();
 };
 
 #endif /* INCLUDE_BYTECODE_H_ */

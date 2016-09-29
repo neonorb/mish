@@ -18,7 +18,7 @@ ExecuterState::ExecuterState() {
 	functionStack = new Stack<Function*>();
 	returnValue = NULL;
 
-	whileBytecodeStack = new Stack<WhileBytecode*>();
+	conditionalBytecodeStack = new Stack<ConditionalBytecode*>();
 }
 
 ExecuterState::~ExecuterState() {
@@ -52,7 +52,7 @@ ExecuterState::~ExecuterState() {
 		delete returnValue;
 	}
 
-	delete whileBytecodeStack;
+	delete conditionalBytecodeStack;
 }
 
 ExecuteStatus mish_execute(ExecuterState* state) {
@@ -73,21 +73,34 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			}
 
 				break;
-			case WHILE_INSTRUCTION:
-				WhileBytecode* whileBytecode = (WhileBytecode*) bytecode;
+			case CONDITIONAL_INSTRUCTION:
+				ConditionalBytecode* conditionalBytecode =
+						(ConditionalBytecode*) bytecode;
 
-				state->whileBytecodeStack->push(whileBytecode);
-				state->modeStack->push(WHILE_MODE);
+				state->conditionalBytecodeStack->push(conditionalBytecode);
+
+				state->modeStack->push(AFTERCONDITIONAL_MODE);
+
+				if (conditionalBytecode->type == IF_CONDITIONALTYPE) {
+					state->argumentIteratorStack->push(
+							new Iterator<Expression*>(
+									conditionalBytecode->condition->iterator()));
+					state->evaluationsStack->push(new List<Value*>());
+					state->modeStack->push(ARGUMENT_MODE);
+
+				} else {
+					state->modeStack->push(LOOP_MODE);
+				}
 
 				break;
 			}
 		} else {
-			// TODO end of function... if non-void function, crash system, if void function, then return
-			// for now, just end the execution
 			delete state->callStack->pop();
 			state->modeStack->pop();
 
-			if (state->modeStack->size() == 0) {
+			// TODO end of function... if non-void function, crash system, if void function, then return
+			// for now, just end the execution
+			if (state->callStack->size() == 0) {
 				return DONE;
 			}
 		}
@@ -139,19 +152,18 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 					crash(L"regular functions not implemented yet");
 					return NOT_DONE; // don't delete evaluations
 				}
-			} else if (state->modeStack->peek() == WHILE_MODE) {
+			} else {
 				BooleanValue* condition = (BooleanValue*) evaluations->get(0);
-				if (condition->value) {
+				if (condition->value) { // if the value is true
 					state->modeStack->push(BYTECODE_MODE);
 					state->callStack->push(
 							new Iterator<Bytecode*>(
-									state->whileBytecodeStack->peek()->code->bytecodes->iterator()));
+									state->conditionalBytecodeStack->peek()->code->bytecodes->iterator()));
 				} else {
-					state->whileBytecodeStack->pop();
-					state->modeStack->pop();
+					if (state->modeStack->peek() == LOOP_MODE) {
+						state->modeStack->pop(); // end loop
+					}
 				}
-			} else {
-				crash(L"unexpected execution mode");
 			}
 
 			Iterator<Value*> evaluationIterator = evaluations->iterator();
@@ -163,12 +175,15 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			}
 			delete evaluations;
 		}
-	} else if (state->modeStack->peek() == WHILE_MODE) {
+	} else if (state->modeStack->peek() == LOOP_MODE) {
 		state->argumentIteratorStack->push(
 				new Iterator<Expression*>(
-						state->whileBytecodeStack->peek()->condition->iterator()));
+						state->conditionalBytecodeStack->peek()->condition->iterator()));
 		state->evaluationsStack->push(new List<Value*>());
 		state->modeStack->push(ARGUMENT_MODE);
+	} else if (state->modeStack->peek() == AFTERCONDITIONAL_MODE) {
+		state->modeStack->pop();
+		state->conditionalBytecodeStack->pop();
 	} else {
 		// TODO fault as error in Mish and continue
 		crash(L"unknown execution mode");
@@ -180,8 +195,8 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 void mish_execute(Code* code) {
 	ExecuterState* state = new ExecuterState();
 
-	// start executing on first bytecode
-	// TODO change this so that execution can resume and exit after every cycle
+// start executing on first bytecode
+// TODO change this so that execution can resume and exit after every cycle
 	state->callStack->push(
 			new Iterator<Bytecode*>(code->bytecodes->iterator()));
 	state->modeStack->push(BYTECODE_MODE);

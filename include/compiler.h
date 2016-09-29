@@ -21,7 +21,7 @@ enum ParseMode {
 	STRING,
 	PARENTHISIS,
 	COMMENT,
-	WHILE,
+	LOOP,
 	EXPECT_BLOCK,
 	EXPRESSION,
 	REQUIRE_CLOSE_EXPRESSION
@@ -43,6 +43,8 @@ public:
 	Stack<String>* symbolStack;
 
 	List<wchar_t>* string;bool escaping;
+
+	Stack<ConditionalBytecodeType>* conditionalTypeStack;
 };
 
 Code* mish_compile(String code);
