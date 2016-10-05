@@ -18,6 +18,10 @@ public:
 	virtual ~Value();
 
 	bool isConstant;
+
+	uint64 referenceCount;
+	void createReference();
+	void deleteReference();
 };
 
 // string

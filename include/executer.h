@@ -34,7 +34,6 @@ public:
 	Stack<List<Value*>*>* evaluationsStack;
 
 	Stack<Function*>* functionStack;
-	Value* returnValue;
 
 	Stack<ConditionalBytecode*>* conditionalBytecodeStack;
 };

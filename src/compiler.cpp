@@ -352,7 +352,7 @@ static String processCharacter(char c, CompilerState* state) {
 				state->string->clear();
 
 				// add the string to the arguments
-				Value* stringConstant = new StringValue(str, true);
+				Value* stringConstant = new StringValue(str);
 				stringConstant->isConstant = true;
 				state->argumentsStack->peek()->add(
 						(Expression*) stringConstant);

@@ -12,6 +12,20 @@
 Value::Value(ValueType type) :
 		Expression(type, VALUE_EXPRESSION) {
 	isConstant = false;
+	referenceCount = 0;
+}
+
+void Value::createReference() {
+	referenceCount++;
+}
+
+void Value::deleteReference() {
+	referenceCount--;
+
+	if (referenceCount == 0 && !isConstant) {
+		// TODO iterate over weak references and set them to default values
+		delete this;
+	}
 }
 
 Value::~Value() {

@@ -16,7 +16,6 @@ ExecuterState::ExecuterState() {
 	evaluationsStack = new Stack<List<Value*>*>();
 
 	functionStack = new Stack<Function*>();
-	returnValue = NULL;
 
 	conditionalBytecodeStack = new Stack<ConditionalBytecode*>();
 }
@@ -39,18 +38,13 @@ ExecuterState::~ExecuterState() {
 		Iterator<Value*> evaluationIterator = evaluations->iterator();
 		while (evaluationIterator.hasNext()) {
 			Value* value = evaluationIterator.next();
-			if (!value->isConstant) {
-				delete value;
-			}
+			value->deleteReference();
 		}
 		delete evaluations;
 	}
 	delete evaluationsStack;
 
 	delete functionStack;
-	if (returnValue != NULL) {
-		delete returnValue;
-	}
 
 	delete conditionalBytecodeStack;
 }
@@ -111,6 +105,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			switch (expression->expressionType) {
 			case VALUE_EXPRESSION: {
 				Value* constant = (Value*) expression;
+				constant->createReference();
 				state->evaluationsStack->peek()->add(constant);
 			}
 				break;
@@ -137,11 +132,12 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				Function* function = state->functionStack->pop();
 
 				if (function->native != NULL) {
-					state->returnValue = function->native(evaluations);
+					Value* returnValue = function->native(evaluations);
+					returnValue->createReference();
 					// TODO delete the return value at some point
 					if (state->modeStack->peek() == ARGUMENT_MODE) {
 						state->evaluationsStack->peek()->add(
-								state->returnValue);
+								returnValue);
 					}
 				} else {
 					state->modeStack->push(BYTECODE_MODE);
@@ -149,6 +145,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 							new Iterator<Bytecode*>(
 									function->code->bytecodes->iterator()));
 					// TODO evaluate and call function
+					// TODO remember to create return reference
 					crash(L"regular functions not implemented yet");
 					return NOT_DONE; // don't delete evaluations
 				}
@@ -169,9 +166,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			Iterator<Value*> evaluationIterator = evaluations->iterator();
 			while (evaluationIterator.hasNext()) {
 				Value* value = evaluationIterator.next();
-				if (!value->isConstant) {
-					delete value;
-				}
+				value->deleteReference();
 			}
 			delete evaluations;
 		}
