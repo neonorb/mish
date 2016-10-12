@@ -8,8 +8,8 @@
 #include <array.h>
 #include <compiler.h>
 
-#define VALID_SYMBOL_CHARS L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
-#define WHITESPACE_CHARS L" \t\n"
+#define VALID_SYMBOL_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
+#define WHITESPACE_CHARS " \t\n"
 
 CompilerState::CompilerState() {
 	codeStack = new Stack<Code*>();
@@ -19,10 +19,10 @@ CompilerState::CompilerState() {
 	requireExpression = false;
 	argumentsStack = new Stack<List<Expression*>*>();
 
-	symbol = new List<wchar_t>();
+	symbol = new List<strchar>();
 	symbolStack = new Stack<String>();
 
-	string = new List<wchar_t>();
+	string = new List<strchar>();
 	escaping = false;
 
 	conditionalTypeStack = new Stack<ConditionalBytecodeType>();
@@ -64,16 +64,16 @@ CompilerState::~CompilerState() {
 	delete conditionalTypeStack;
 }
 
-static bool isValidSymbolChar(wchar_t c) {
-	return arrayContains<wchar_t>(VALID_SYMBOL_CHARS,
+static bool isValidSymbolChar(strchar c) {
+	return arrayContains<strchar>(VALID_SYMBOL_CHARS,
 			strlen(VALID_SYMBOL_CHARS), c);
 }
 
-static bool isWhitespace(wchar_t c) {
-	return arrayContains<wchar_t>(WHITESPACE_CHARS, strlen(WHITESPACE_CHARS), c);
+static bool isWhitespace(strchar c) {
+	return arrayContains<strchar>(WHITESPACE_CHARS, strlen(WHITESPACE_CHARS), c);
 }
 
-static String processCharacter(char c, CompilerState* state) {
+static String processCharacter(strchar c, CompilerState* state) {
 	parseChar: switch (state->mode->peek()) {
 	case EXPECT_STATEMENT:
 		// skip any whitespace
@@ -93,7 +93,7 @@ static String processCharacter(char c, CompilerState* state) {
 		} else if (c == '}') {
 			// check if we can close any blocks
 			if (state->codeStack->size() == 0) {
-				return L"unexpected }";
+				return "unexpected }";
 			}
 
 			state->mode->pop();
@@ -103,17 +103,17 @@ static String processCharacter(char c, CompilerState* state) {
 				Code* whileCode = state->codeStack->pop();
 				List<Expression*>* arguments = state->argumentsStack->pop();
 				if (arguments->size() > 1) {
-					crash(L"while loop should only have one argument");
+					crash("while loop should only have one argument");
 				}
 				state->codeStack->peek()->bytecodes->add(
 						new ConditionalBytecode(arguments, whileCode,
 								state->conditionalTypeStack->pop()));
 				break;
 			} else {
-				crash(L"unexpected mode after closing block");
+				crash("unexpected mode after closing block");
 			}
 		} else {
-			return L"expected statement";
+			return "expected statement";
 		}
 		break;
 	case EXPECT_STATEMENT_TERMINATOR:
@@ -123,7 +123,7 @@ static String processCharacter(char c, CompilerState* state) {
 		} else if (isWhitespace(c)) {
 			break;
 		} else {
-			return L"expected statement terminator";
+			return "expected statement terminator";
 			break;
 		}
 
@@ -133,10 +133,10 @@ static String processCharacter(char c, CompilerState* state) {
 			state->symbol->add(c);
 		} else {
 			// end the symbol because this isn't a valid symbol char
-			wchar_t* sym = (wchar_t*) create(state->symbol->size() * 2 + 1);
+			strchar* sym = (strchar*) create(state->symbol->size() * sizeof(strchar) + 1);
 
 			// copy the list of characters to an actual string
-			Iterator<wchar_t> symbolIterator = state->symbol->iterator();
+			Iterator<strchar> symbolIterator = state->symbol->iterator();
 			uint64 symIndex = 0;
 			while (symbolIterator.hasNext()) {
 				sym[symIndex] = symbolIterator.next();
@@ -147,11 +147,11 @@ static String processCharacter(char c, CompilerState* state) {
 
 			state->mode->pop();
 
-			if (strequ(sym, L"true")) {
+			if (strequ(sym, "true")) {
 				state->argumentsStack->peek()->add(
 						new BooleanValue(true, true));
 				delete sym;
-			} else if (strequ(sym, L"false")) {
+			} else if (strequ(sym, "false")) {
 				state->argumentsStack->peek()->add(
 						new BooleanValue(false, true));
 				delete sym;
@@ -171,7 +171,7 @@ static String processCharacter(char c, CompilerState* state) {
 		}
 
 		if (c == '(') {
-			if (strequ(state->symbolStack->peek(), L"while")) {
+			if (strequ(state->symbolStack->peek(), "while")) {
 				delete state->symbolStack->pop();
 
 				state->argumentsStack->push(new List<Expression*>());
@@ -181,7 +181,7 @@ static String processCharacter(char c, CompilerState* state) {
 				state->mode->push(EXPRESSION);
 
 				state->conditionalTypeStack->push(WHILE_CONDITIONALTYPE);
-			} else if (strequ(state->symbolStack->peek(), L"if")) {
+			} else if (strequ(state->symbolStack->peek(), "if")) {
 				delete state->symbolStack->pop();
 
 				state->argumentsStack->push(new List<Expression*>());
@@ -200,7 +200,7 @@ static String processCharacter(char c, CompilerState* state) {
 				state->mode->push(EXPRESSION);
 			}
 		} else {
-			return L"unexpected character";
+			return "unexpected character";
 		}
 		break;
 	case EXPRESSION:
@@ -223,9 +223,9 @@ static String processCharacter(char c, CompilerState* state) {
 			// TODO open expression
 		} else {
 			if (state->mode->peek(1) == REQUIRE_CLOSE_EXPRESSION) {
-				return L"expression needs to be closed";
+				return "expression needs to be closed";
 			} else if (state->requireExpression) {
-				return L"expression expected";
+				return "expression expected";
 			}
 
 			state->mode->pop();
@@ -244,7 +244,7 @@ static String processCharacter(char c, CompilerState* state) {
 
 			// determine if this is a syscall
 			List<Function*>* functions;
-			if (stringStartsWith(symbol, L"__")) {
+			if (stringStartsWith(symbol, "__")) {
 				functions = &mish_syscalls;
 			} else {
 				// TODO regular function
@@ -286,8 +286,7 @@ static String processCharacter(char c, CompilerState* state) {
 			delete symbol;
 
 			if (!found) {
-				return L"syscall not found";
-				break;
+				return "syscall not found";
 			}
 
 			// add the function call to the bytecodes
@@ -327,7 +326,7 @@ static String processCharacter(char c, CompilerState* state) {
 				// quote escape sequence
 				state->string->add('\'');
 			} else {
-				return L"unrecognized escape sequence";
+				return "unrecognized escape sequence";
 				break;
 			}
 
@@ -339,10 +338,10 @@ static String processCharacter(char c, CompilerState* state) {
 				state->escaping = true;
 			} else if (c == '\'') {
 				// end string
-				wchar_t* str = (wchar_t*) create(state->string->size() * 2 + 1);
+				strchar* str = (strchar*) create(state->string->size() * sizeof(strchar) + 1);
 
 				// copy the list of characters to an actual string
-				Iterator<wchar_t> stringIterator = state->string->iterator();
+				Iterator<strchar> stringIterator = state->string->iterator();
 				uint64 strIndex = 0;
 				while (stringIterator.hasNext()) {
 					str[strIndex] = stringIterator.next();
@@ -377,15 +376,15 @@ static String processCharacter(char c, CompilerState* state) {
 		if (c == ')') {
 			int argumentsSize = state->argumentsStack->peek()->size();
 			if (argumentsSize == 0) {
-				return L"statement needs a condition";
+				return "statement needs a condition";
 			} else if (argumentsSize > 1) {
-				crash(L"argument size is greater than 1");
+				crash("argument size is greater than 1");
 			}
 
 			state->mode->push(EXPECT_BLOCK);
 			break;
 		} else {
-			return L"unexpected character to end while";
+			return "unexpected character to end while";
 		}
 		break;
 	case EXPECT_BLOCK:
@@ -399,7 +398,7 @@ static String processCharacter(char c, CompilerState* state) {
 			state->mode->push(EXPECT_STATEMENT);
 			state->codeStack->push(new Code());
 		} else {
-			return L"expected block";
+			return "expected block";
 		}
 	}
 
@@ -411,7 +410,7 @@ Code* mish_compile(String code) {
 	return mish_compile(code, strlen(code));
 }
 
-Code* mish_compile(String sourceCode, size_t size) {
+Code* mish_compile(String sourceCode, size size) {
 	CompilerState* state = new CompilerState();
 	state->codeStack->push(new Code());
 	state->mode->push(EXPECT_STATEMENT);
@@ -429,8 +428,8 @@ Code* mish_compile(String sourceCode, size_t size) {
 	uint64 i = 0;
 	for (; i < size; i++) {
 		// get the next char to process
-		wchar_t c = sourceCode[i];
-		//write_serial(c);
+		strchar c = sourceCode[i];
+		//debug(c);
 
 		if (c == '\n') {
 			if (hasError) {
@@ -461,8 +460,8 @@ Code* mish_compile(String sourceCode, size_t size) {
 			&& endParseMode != COMMENT
 			&& endParseMode != EXPECT_STATEMENT_TERMINATOR) {
 		// something wasn't properly closed, throw a generic error for now
-		debug(L"parse mode", state->mode->pop());
-		errorMessage = L"incorrect parse mode";
+		debug("parse mode", (uint64) state->mode->pop());
+		errorMessage = "incorrect parse mode";
 		hasError = true;
 	}
 
@@ -470,8 +469,8 @@ Code* mish_compile(String sourceCode, size_t size) {
 		// generate the error message and display it
 		String line = substring(sourceCode, lineStart, lineEnd);
 
-		wchar_t* errorPositionMarker = (wchar_t*) create(
-				(lineEnd - lineStart) * 2 + 1);
+		strchar* errorPositionMarker = (strchar*) create(
+				(lineEnd - lineStart) * sizeof(strchar) + 1);
 		uint64 i = 0;
 		for (; i < (lineEnd - lineStart); i++) {
 			if (lineStart + i == errorPosition) {
@@ -485,13 +484,13 @@ Code* mish_compile(String sourceCode, size_t size) {
 		// print the error
 		fault(line);
 		fault(errorPositionMarker);
-		debug(L"line", lineNumber, 10);
+		debug("line", lineNumber, 10);
 		fault(errorMessage);
 
 		// delete error message stuff
 		delete line;
 		delete errorPositionMarker;
-		delete errorMessage;
+		//delete errorMessage;
 
 		delete state;
 		return NULL;

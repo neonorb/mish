@@ -13,6 +13,8 @@ class ExecuterState;
 #include <mish.h>
 #include <stack.h>
 
+using namespace feta;
+
 enum ExecuteStatus {
 	DONE, NOT_DONE
 };

@@ -11,3 +11,5 @@ LIBS=feta
 
 -include ../make-base/make-base.mk
 -include ../make-base/make-lib.mk
+
+CFLAGS+=-nostdlib

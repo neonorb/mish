@@ -13,6 +13,8 @@ class Scope;
 #include <list.h>
 #include <function.h>
 
+using namespace feta;
+
 class Scope {
 public:
 	Scope();

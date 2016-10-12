@@ -13,6 +13,8 @@
 #include <list.h>
 #include <expression.h>
 
+using namespace feta;
+
 class FunctionCallVoid: Bytecode {
 public:
 	FunctionCallVoid(Function* function, List<Expression*>* arguments);

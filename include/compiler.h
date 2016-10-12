@@ -11,6 +11,10 @@
 #include <mish.h>
 #include <memory.h>
 #include <stack.h>
+#include <int.h>
+#include <string.h>
+
+using namespace feta;
 
 enum ParseMode {
 	EXPECT_STATEMENT,
@@ -39,15 +43,15 @@ public:
 	bool requireExpression;
 	Stack<List<Expression*>*>* argumentsStack;
 
-	List<wchar_t>* symbol;
+	List<strchar>* symbol;
 	Stack<String>* symbolStack;
 
-	List<wchar_t>* string;bool escaping;
+	List<strchar>* string;bool escaping;
 
 	Stack<ConditionalBytecodeType>* conditionalTypeStack;
 };
 
 Code* mish_compile(String code);
-Code* mish_compile(String start, size_t size);
+Code* mish_compile(String start, feta::size size);
 
 #endif /* INCLUDE_COMPILER_H_ */

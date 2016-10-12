@@ -133,11 +133,12 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 
 				if (function->native != NULL) {
 					Value* returnValue = function->native(evaluations);
-					returnValue->createReference();
-					// TODO delete the return value at some point
-					if (state->modeStack->peek() == ARGUMENT_MODE) {
-						state->evaluationsStack->peek()->add(
-								returnValue);
+					if (returnValue != NULL) {
+						returnValue->createReference();
+						// TODO delete the return value at some point
+						if (state->modeStack->peek() == ARGUMENT_MODE) {
+							state->evaluationsStack->peek()->add(returnValue);
+						}
 					}
 				} else {
 					state->modeStack->push(BYTECODE_MODE);
@@ -146,7 +147,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 									function->code->bytecodes->iterator()));
 					// TODO evaluate and call function
 					// TODO remember to create return reference
-					crash(L"regular functions not implemented yet");
+					crash("regular functions not implemented yet");
 					return NOT_DONE; // don't delete evaluations
 				}
 			} else {
@@ -181,7 +182,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 		state->conditionalBytecodeStack->pop();
 	} else {
 		// TODO fault as error in Mish and continue
-		crash(L"unknown execution mode");
+		crash("unknown execution mode");
 	}
 
 	return NOT_DONE;

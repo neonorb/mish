@@ -28,7 +28,7 @@ ConditionalBytecode::~ConditionalBytecode() {
 	// condition
 	if (condition->size() != 1) {
 		crash(
-				L"condition has inappropriate size while destructing WhileBytecode");
+				"condition has inappropriate size while destructing WhileBytecode");
 	}
 	delete condition->remove((uint64) 0);
 	delete condition;

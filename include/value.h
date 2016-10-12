@@ -11,6 +11,8 @@
 #include <string.h>
 #include <expression.h>
 
+using namespace feta;
+
 // value
 class Value: public Expression {
 public:

@@ -10,7 +10,9 @@
 
 #include <bool.h>
 
-template<typename T> bool arrayContains(T* array, size_t size, T element) {
+using namespace feta;
+
+template<typename T> bool arrayContains(T* array, size size, T element) {
 	for (uint64 i = 0; i < size; i++) {
 		if (array[i] == element) {
 			return true;
