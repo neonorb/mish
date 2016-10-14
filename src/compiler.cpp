@@ -133,7 +133,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 			state->symbol->add(c);
 		} else {
 			// end the symbol because this isn't a valid symbol char
-			strchar* sym = (strchar*) create(state->symbol->size() * sizeof(strchar) + 1);
+			strchar* sym = (strchar*) create(
+					state->symbol->size() * sizeof(strchar) + 1);
 
 			// copy the list of characters to an actual string
 			Iterator<strchar> symbolIterator = state->symbol->iterator();
@@ -248,6 +249,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 				functions = &mish_syscalls;
 			} else {
 				// TODO regular function
+				crash("regular functions not implemented yet");
 			}
 
 			// search for the function
@@ -338,7 +340,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 				state->escaping = true;
 			} else if (c == '\'') {
 				// end string
-				strchar* str = (strchar*) create(state->string->size() * sizeof(strchar) + 1);
+				strchar* str = (strchar*) create(
+						state->string->size() * sizeof(strchar) + 1);
 
 				// copy the list of characters to an actual string
 				Iterator<strchar> stringIterator = state->string->iterator();
@@ -425,11 +428,11 @@ Code* mish_compile(String sourceCode, size size) {
 	uint64 errorPosition = NULL;
 	String errorMessage = NULL;
 
-	uint64 i = 0;
+	uinteger i = 0;
 	for (; i < size; i++) {
 		// get the next char to process
 		strchar c = sourceCode[i];
-		//debug(c);
+		//debug("char", (uint64) c);
 
 		if (c == '\n') {
 			if (hasError) {
@@ -451,9 +454,6 @@ Code* mish_compile(String sourceCode, size size) {
 			}
 		}
 	}
-	if (hasError && lineEnd == NULL) {
-		lineEnd = i;
-	}
 
 	ParseMode endParseMode = state->mode->peek();
 	if (errorMessage == NULL && endParseMode != EXPECT_STATEMENT
@@ -466,6 +466,13 @@ Code* mish_compile(String sourceCode, size size) {
 	}
 
 	if (hasError) {
+		if (lineEnd == NULL) {
+			lineEnd = i;
+		}
+
+		debug("lineStart", lineStart);
+		debug("lineEnd", lineEnd);
+
 		// generate the error message and display it
 		String line = substring(sourceCode, lineStart, lineEnd);
 
