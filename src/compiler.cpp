@@ -249,7 +249,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 				functions = &mish_syscalls;
 			} else {
 				// TODO regular function
-				crash("regular functions not implemented yet");
+				return "regular functions not implemented yet";
 			}
 
 			// search for the function
@@ -381,7 +381,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 			if (argumentsSize == 0) {
 				return "statement needs a condition";
 			} else if (argumentsSize > 1) {
-				crash("argument size is greater than 1");
+				return "argument size is greater than 1";
 			}
 
 			state->mode->push(EXPECT_BLOCK);
