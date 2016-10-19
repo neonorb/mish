@@ -21,7 +21,7 @@ public:
 };
 
 enum ConditionalBytecodeType {
-	WHILE_CONDITIONALTYPE, IF_CONDITIONALTYPE, DOWHILE_CONDITIONALTYPE
+	WHILE_CONDITIONALTYPE, IF_CONDITIONALTYPE, ELSEIF_CONDITIONALTYPE, DOWHILE_CONDITIONALTYPE
 };
 
 #include <mish.h>
@@ -31,6 +31,7 @@ public:
 	List<Expression*>* condition;
 	Code* code;
 	ConditionalBytecodeType type;
+	List<ConditionalBytecode*>* elseifs;
 
 	ConditionalBytecode(List<Expression*>* condition, Code* code,
 			ConditionalBytecodeType type);

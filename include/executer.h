@@ -20,7 +20,7 @@ enum ExecuteStatus {
 };
 
 enum ExecuteMode {
-	BYTECODE_MODE, ARGUMENT_MODE, LOOP_MODE, AFTERCONDITIONAL_MODE
+	BYTECODE_MODE, ARGUMENT_MODE, LOOP_MODE, AFTERCONDITIONAL_MODE, ELSEIF_MODE
 };
 
 class ExecuterState {
@@ -38,6 +38,7 @@ public:
 	Stack<Function*>* functionStack;
 
 	Stack<ConditionalBytecode*>* conditionalBytecodeStack;
+	Stack<Iterator<ConditionalBytecode*>*>* elseIfIteratorStack;
 };
 
 void mish_execute(Code* code);

@@ -97,17 +97,37 @@ static String processCharacter(strchar c, CompilerState* state) {
 			}
 
 			state->mode->pop();
-			if (state->mode->peek() == LOOP) {
+			if (state->mode->peek() == CONDITIONAL) {
 				state->mode->pop();
-				// close a while loop
-				Code* whileCode = state->codeStack->pop();
+
+				// close a conditional
+				Code* code = state->codeStack->pop();
 				List<Expression*>* arguments = state->argumentsStack->pop();
 				if (arguments->size() > 1) {
-					crash("while loop should only have one argument");
+					crash("conditional should only have one argument");
 				}
-				state->codeStack->peek()->bytecodes->add(
-						new ConditionalBytecode(arguments, whileCode,
-								state->conditionalTypeStack->pop()));
+
+				ConditionalBytecodeType type =
+						state->conditionalTypeStack->pop();
+
+				ConditionalBytecode* newBytecode = new ConditionalBytecode(
+						arguments, code, type);
+
+				if (type == IF_CONDITIONALTYPE || type == WHILE_CONDITIONALTYPE
+						|| type == DOWHILE_CONDITIONALTYPE) {
+					state->codeStack->peek()->bytecodes->add(newBytecode);
+				} else if (type == ELSEIF_CONDITIONALTYPE) {
+					Bytecode* lastBytecode = state->codeStack->peek()->bytecodes->getLast();
+					if (lastBytecode->instruction == CONDITIONAL_INSTRUCTION) {
+						ConditionalBytecode* conditionalBytecode =
+								(ConditionalBytecode*) lastBytecode;
+						conditionalBytecode->elseifs->add(newBytecode);
+					} else {
+						return "else not expected here";
+					}
+				} else {
+					crash("unexpected conditional type");
+				}
 				break;
 			} else {
 				crash("unexpected mode after closing block");
@@ -178,7 +198,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 				state->argumentsStack->push(new List<Expression*>());
 
 				state->mode->pop();
-				state->mode->push(LOOP);
+				state->mode->push(CONDITIONAL);
 				state->mode->push(EXPRESSION);
 
 				state->conditionalTypeStack->push(WHILE_CONDITIONALTYPE);
@@ -188,10 +208,20 @@ static String processCharacter(strchar c, CompilerState* state) {
 				state->argumentsStack->push(new List<Expression*>());
 
 				state->mode->pop();
-				state->mode->push(LOOP);
+				state->mode->push(CONDITIONAL);
 				state->mode->push(EXPRESSION);
 
 				state->conditionalTypeStack->push(IF_CONDITIONALTYPE);
+			} else if (strequ(state->symbolStack->peek(), "elseif")) {
+				delete state->symbolStack->pop();
+
+				state->argumentsStack->push(new List<Expression*>());
+
+				state->mode->pop();
+				state->mode->push(CONDITIONAL);
+				state->mode->push(EXPRESSION);
+
+				state->conditionalTypeStack->push(ELSEIF_CONDITIONALTYPE);
 			} else {
 				// begin function
 				state->argumentsStack->push(new List<Expression*>());
@@ -199,6 +229,23 @@ static String processCharacter(strchar c, CompilerState* state) {
 				state->mode->pop();
 				state->mode->push(FUNCTION);
 				state->mode->push(EXPRESSION);
+			}
+		} else if (c == '{') {
+			if (strequ(state->symbolStack->peek(), "else")) {
+				delete state->symbolStack->pop();
+
+				state->argumentsStack->push(new List<Expression*>());
+				state->argumentsStack->peek()->add(
+						new BooleanValue(true, true));
+
+				state->mode->pop();
+				state->mode->push(CONDITIONAL);
+				state->mode->push(EXPECT_STATEMENT);
+				state->codeStack->push(new Code());
+
+				state->conditionalTypeStack->push(ELSEIF_CONDITIONALTYPE);
+			} else {
+				return "unexpected character";
 			}
 		} else {
 			return "unexpected character";
@@ -370,7 +417,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 			state->mode->pop();
 		}
 		break;
-	case LOOP:
+	case CONDITIONAL:
 		// skip any whitespace
 		if (isWhitespace(c)) {
 			break;

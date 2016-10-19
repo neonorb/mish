@@ -18,6 +18,7 @@ ExecuterState::ExecuterState() {
 	functionStack = new Stack<Function*>();
 
 	conditionalBytecodeStack = new Stack<ConditionalBytecode*>();
+	elseIfIteratorStack = new Stack<Iterator<ConditionalBytecode*>*>();
 }
 
 ExecuterState::~ExecuterState() {
@@ -47,6 +48,10 @@ ExecuterState::~ExecuterState() {
 	delete functionStack;
 
 	delete conditionalBytecodeStack;
+	while (elseIfIteratorStack->size() > 0) {
+		delete elseIfIteratorStack->pop();
+	}
+	delete elseIfIteratorStack;
 }
 
 ExecuteStatus mish_execute(ExecuterState* state) {
@@ -81,7 +86,6 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 									conditionalBytecode->condition->iterator()));
 					state->evaluationsStack->push(new List<Value*>());
 					state->modeStack->push(ARGUMENT_MODE);
-
 				} else {
 					state->modeStack->push(LOOP_MODE);
 				}
@@ -153,11 +157,28 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			} else {
 				BooleanValue* condition = (BooleanValue*) evaluations->get(0);
 				if (condition->value) { // if the value is true
+					if (state->modeStack->size() >= 2
+							&& state->modeStack->peek(1) == ELSEIF_MODE) {
+						state->elseIfIteratorStack->pop();
+						state->modeStack->pop();
+						state->modeStack->pop();
+					}
 					state->modeStack->push(BYTECODE_MODE);
 					state->callStack->push(
 							new Iterator<Bytecode*>(
 									state->conditionalBytecodeStack->peek()->code->bytecodes->iterator()));
 				} else {
+					// if we have else ifs (or an else)
+					if (state->conditionalBytecodeStack->peek()->elseifs != NULL
+							&& state->conditionalBytecodeStack->peek()->elseifs->size()
+									> 0) {
+						// then start iterating over those
+						state->elseIfIteratorStack->push(
+								new Iterator<ConditionalBytecode*>(
+										state->conditionalBytecodeStack->peek()->elseifs->iterator()));
+						state->modeStack->push(ELSEIF_MODE);
+					}
+
 					if (state->modeStack->peek() == LOOP_MODE) {
 						state->modeStack->pop(); // end loop
 					}
@@ -177,6 +198,21 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 						state->conditionalBytecodeStack->peek()->condition->iterator()));
 		state->evaluationsStack->push(new List<Value*>());
 		state->modeStack->push(ARGUMENT_MODE);
+	} else if (state->modeStack->peek() == ELSEIF_MODE) {
+		if (state->elseIfIteratorStack->peek()->hasNext()) {
+			ConditionalBytecode* conditionalBytecode =
+					state->elseIfIteratorStack->peek()->next();
+			state->conditionalBytecodeStack->push(conditionalBytecode);
+			state->modeStack->push(AFTERCONDITIONAL_MODE);
+			state->argumentIteratorStack->push(
+					new Iterator<Expression*>(
+							conditionalBytecode->condition->iterator()));
+			state->evaluationsStack->push(new List<Value*>());
+			state->modeStack->push(ARGUMENT_MODE);
+		} else {
+			state->elseIfIteratorStack->pop();
+			state->modeStack->pop();
+		}
 	} else if (state->modeStack->peek() == AFTERCONDITIONAL_MODE) {
 		state->modeStack->pop();
 		state->conditionalBytecodeStack->pop();
