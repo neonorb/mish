@@ -38,4 +38,13 @@ public:
 	virtual ~ConditionalBytecode();
 };
 
+class WhileBytecode: public Bytecode {
+public:
+	Expression* condition;
+	Code* code;
+	bool isDoWhile;
+
+	WhileBytecode(Expression* condition, Code* code, bool isDoWhile);
+};
+
 #endif /* INCLUDE_BYTECODE_H_ */

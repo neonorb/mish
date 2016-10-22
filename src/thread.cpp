@@ -11,9 +11,7 @@ Thread::Thread(Code* code, ThreadPriority priority) {
 	this->code = code;
 
 	state = new ExecuterState();
-	state->callStack->push(
-			new Iterator<Bytecode*>(code->bytecodes->iterator()));
-	state->modeStack->push(BYTECODE_MODE);
+	state->executionStack->push(new BytecodeStackFrame(code->bytecodes));
 
 	this->priority = priority;
 
