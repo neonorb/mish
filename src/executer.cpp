@@ -30,13 +30,14 @@ BytecodeStackFrame::~BytecodeStackFrame() {
 
 // FunctionCallStackFrame
 FunctionCallStackFrame::FunctionCallStackFrame(Function* function,
-		List<Expression*>* arguments) :
+		List<Expression*>* arguments, auto response) :
 		ExecutionStackFrame(ExecutionStackFrameType::FUNCTION_CALL) {
 	mode = FunctionCallStackFrameMode::EVALUATE;
 
 	this->function = function;
 	this->arguments = arguments;
 	this->evaluations = new List<Value*>();
+	this->response = response;
 }
 
 FunctionCallStackFrame::~FunctionCallStackFrame() {
@@ -59,16 +60,6 @@ ArgumentStackFrame::ArgumentStackFrame(List<Expression*>* expressions,
 
 ArgumentStackFrame::~ArgumentStackFrame() {
 	delete expressionIterator;
-}
-
-// IfConditionCode
-IfConditionCode::IfConditionCode(Expression* condition, Code* code) {
-	this->condition = condition;
-	this->code = code;
-}
-
-IfConditionCode::~IfConditionCode() {
-
 }
 
 // IfStackFrame
@@ -139,7 +130,7 @@ static void evaluateExpression(Expression* expression, ExecuterState* state,
 
 		state->executionStack->push(
 				new FunctionCallStackFrame(functionCallReturn->function,
-						functionCallReturn->arguments));
+						functionCallReturn->arguments, response));
 
 		break;
 	}
@@ -152,54 +143,24 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				(BytecodeStackFrame*) state->executionStack->peek();
 		if (stackFrame->bytecodesIterator->hasNext()) {
 			Bytecode* bytecode = stackFrame->bytecodesIterator->next();
-			switch (bytecode->instruction) {
-			case FUNC_CALL_INSTRUCTION: {
+			if (bytecode->type == BytecodeType::FUNC_CALL) {
 				FunctionCallVoid* functionCallVoid =
 						(FunctionCallVoid*) bytecode;
 
 				state->executionStack->push(
 						new FunctionCallStackFrame(functionCallVoid->function,
-								functionCallVoid->arguments));
-			}
-				break;
-			case CONDITIONAL_INSTRUCTION:
-				ConditionalBytecode* conditionalBytecode =
-						(ConditionalBytecode*) bytecode;
-
-				if (conditionalBytecode->type == IF_CONDITIONALTYPE) {
-					// ----
-					List<IfConditionCode*>* ifs = new List<IfConditionCode*>();
-					ifs->add(
-							new IfConditionCode(
-									conditionalBytecode->condition->get(0),
-									conditionalBytecode->code));
-					Iterator<ConditionalBytecode*> conditionalBytecodesIterator =
-							conditionalBytecode->elseifs->iterator();
-					while (conditionalBytecodesIterator.hasNext()) {
-						ConditionalBytecode* thisConditionalBytecode =
-								conditionalBytecodesIterator.next();
-						ifs->add(
-								new IfConditionCode(
-										thisConditionalBytecode->condition->get(
-												0),
-										thisConditionalBytecode->code));
-					}
-					// ---- TODO replace this once there is an actual IF bytecode
-					state->executionStack->push(new IfStackFrame(ifs));
-				} else if (conditionalBytecode->type == WHILE_CONDITIONALTYPE
-						|| conditionalBytecode->type
-								== DOWHILE_CONDITIONALTYPE) {
-					state->executionStack->push(
-							new WhileStackFrame(
-									conditionalBytecode->condition->get(0),
-									conditionalBytecode->code,
-									conditionalBytecode->type
-											== DOWHILE_CONDITIONALTYPE));
-				} else {
-					crash("unknown conditional type");
-				}
-
-				break;
+								functionCallVoid->arguments,
+								[](Value* response) { /* discard the return value */}));
+			} else if (bytecode->type == BytecodeType::IF) {
+				IfBytecode* ifBytecode = (IfBytecode*) bytecode;
+				state->executionStack->push(new IfStackFrame(ifBytecode->ifs));
+			} else if (bytecode->type == BytecodeType::WHILE) {
+				WhileBytecode* whileBytecode = (WhileBytecode*) bytecode;
+				state->executionStack->push(
+						new WhileStackFrame(whileBytecode->condition,
+								whileBytecode->code, whileBytecode->isDoWhile));
+			} else {
+				crash("unknown BytecodeType");
 			}
 		} else {
 			delete state->executionStack->pop();
@@ -231,17 +192,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			// call function
 			if (function->native != NULL) {
 				Value* returnValue = function->native(evaluations);
-				if (returnValue != NULL) {
-					returnValue->createReference();
-
-					if (state->executionStack->peek(1)->type
-							== ExecutionStackFrameType::ARGUMENT) {
-						ArgumentStackFrame* argumentStackFrame =
-								(ArgumentStackFrame*) state->executionStack->peek(
-										1);
-						argumentStackFrame->evaluations->add(returnValue);
-					}
-				}
+				stackFrame->response(returnValue);
 			} else {
 				state->executionStack->push(
 						new BytecodeStackFrame(function->code->bytecodes));

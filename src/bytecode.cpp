@@ -9,43 +9,46 @@
 #include <functioncallvoid.h>
 
 // bytecode
-Bytecode::Bytecode(Instruction instruction) {
-	this->instruction = instruction;
+Bytecode::Bytecode(BytecodeType instruction) {
+	this->type = instruction;
 }
 
 Bytecode::~Bytecode() {
 }
 
-// conditional bytecode
-ConditionalBytecode::ConditionalBytecode(List<Expression*>* condition,
-		Code* code, ConditionalBytecodeType type) :
-		Bytecode(CONDITIONAL_INSTRUCTION) {
+// IfConditionCode
+IfConditionCode::IfConditionCode(Expression* condition, Code* code) {
 	this->condition = condition;
 	this->code = code;
-	this->type = type;
-	if (type == IF_CONDITIONALTYPE) {
-		elseifs = new List<ConditionalBytecode*>();
-	}
 }
 
-ConditionalBytecode::~ConditionalBytecode() {
-	// condition
-	if (condition->size() != 1) {
-		crash(
-				"condition has inappropriate size while destructing WhileBytecode");
+IfConditionCode::~IfConditionCode() {
+
+}
+
+// IfBytecode
+IfBytecode::IfBytecode() :
+		Bytecode(BytecodeType::IF) {
+	ifs = new List<IfConditionCode*>();
+}
+
+IfBytecode::~IfBytecode() {
+	Iterator<IfConditionCode*> ifsIterator = ifs->iterator();
+	while (ifsIterator.hasNext()) {
+		delete ifsIterator.next();
 	}
-	delete condition->remove((uint64) 0);
+	delete ifs;
+}
+
+// WhileBytecode
+WhileBytecode::WhileBytecode(Expression* condition, Code* code, bool isDoWhile) :
+		Bytecode(BytecodeType::WHILE) {
+	this->condition = condition;
+	this->code = code;
+	this->isDoWhile = isDoWhile;
+}
+
+WhileBytecode::~WhileBytecode() {
 	delete condition;
-
-	// code
 	delete code;
-
-	if (elseifs != NULL) {
-		// elseifs
-		Iterator<ConditionalBytecode*> elseifsIterator = elseifs->iterator();
-		while (elseifsIterator.hasNext()) {
-			delete elseifsIterator.next();
-		}
-		delete elseifs;
-	}
 }

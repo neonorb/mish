@@ -11,57 +11,130 @@
 #define VALID_SYMBOL_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
 #define WHITESPACE_CHARS " \t\n"
 
-CompilerState::CompilerState() {
-	codeStack = new Stack<Code*>();
+// CompilerStackFrame
+CompilerStackFrame::CompilerStackFrame(CompilerStackFrameType type) {
+	this->type = type;
+}
 
-	mode = new Stack<ParseMode>();
+CompilerStackFrame::~CompilerStackFrame() {
 
-	requireExpression = false;
-	argumentsStack = new Stack<List<Expression*>*>();
+}
 
+// BodyCompilerStackFrame
+BodyCompilerStackFrame::BodyCompilerStackFrame() :
+		CompilerStackFrame(CompilerStackFrameType::BODY) {
+	mode = BodyCompilerStackFrameMode::READY;
+	symbol = NULL;
+}
+
+BodyCompilerStackFrame::~BodyCompilerStackFrame() {
+	if (symbol != NULL) {
+		delete symbol;
+	}
+}
+
+// IfCompilerStackFrame
+IfCompilerStackFrame::IfCompilerStackFrame(IfCompilerStackFrameType type) :
+		CompilerStackFrame(CompilerStackFrameType::IF) {
+	this->mode = IfCompilerStackFrameMode::EXPECT_P;
+	this->type = type;
+}
+
+IfCompilerStackFrame::~IfCompilerStackFrame() {
+
+}
+
+// WhileCompilerStackFrame
+WhileCompilerStackFrame::WhileCompilerStackFrame(bool isDoWhile) :
+		CompilerStackFrame(CompilerStackFrameType::WHILE) {
+	this->mode = WhileCompilerStackFrameMode::EXPECT_P;
+	this->isDoWhile = isDoWhile;
+}
+
+WhileCompilerStackFrame::~WhileCompilerStackFrame() {
+
+}
+
+// SymbolCompilerStackFrame
+SymbolCompilerStackFrame::SymbolCompilerStackFrame(
+		StringCallback symbolCallback) :
+		CompilerStackFrame(CompilerStackFrameType::SYMBOL) {
 	symbol = new List<strchar>();
-	symbolStack = new Stack<String>();
+	this->symbolCallback = symbolCallback;
+}
 
+SymbolCompilerStackFrame::~SymbolCompilerStackFrame() {
+	delete symbol;
+}
+
+// StringCompilerStackFrame
+StringCompilerStackFrame::StringCompilerStackFrame(
+		StringCallback stringCallback) :
+		CompilerStackFrame(CompilerStackFrameType::STRING) {
 	string = new List<strchar>();
 	escaping = false;
+	this->stringCallback = stringCallback;
+}
 
-	conditionalTypeStack = new Stack<ConditionalBytecodeType>();
+StringCompilerStackFrame::~StringCompilerStackFrame() {
+	delete string;
+}
+
+// CommentCompilerStackFrame
+CommentCompilerStackFrame::CommentCompilerStackFrame(
+		CommentCompilerStackFrameType type) :
+		CompilerStackFrame(CompilerStackFrameType::COMMENT) {
+	this->type = type;
+}
+
+CommentCompilerStackFrame::~CommentCompilerStackFrame() {
+
+}
+
+// FunctionCallCompilerStackFrame
+FunctionCallCompilerStackFrame::FunctionCallCompilerStackFrame(String name) :
+		CompilerStackFrame(CompilerStackFrameType::FUNCTION_CALL) {
+	this->name = name;
+}
+
+FunctionCallCompilerStackFrame::~FunctionCallCompilerStackFrame() {
+	delete name;
+}
+
+// ExpressionCompilerStackFrame
+ExpressionCompilerStackFrame::ExpressionCompilerStackFrame(
+		ExpressionCallback expressionCallback) :
+		CompilerStackFrame(CompilerStackFrameType::EXPRESSION) {
+	this->expressionCallback = expressionCallback;
+}
+
+ExpressionCompilerStackFrame::~ExpressionCompilerStackFrame() {
+
+}
+
+// ArgumentCompilerStackFrame
+ArgumentCompilerStackFrame::ArgumentCompilerStackFrame(
+		ExpressionCallback argumentCallback) :
+		CompilerStackFrame(CompilerStackFrameType::ARGUMENT) {
+	this->argumentCallback = argumentCallback;
+	requireArgument = false;
+}
+
+ArgumentCompilerStackFrame::~ArgumentCompilerStackFrame() {
+
+}
+
+// main compiler state
+
+CompilerState::CompilerState() {
+	compilerStack = new Stack<CompilerStackFrame*>();
 }
 
 CompilerState::~CompilerState() {
-	// code
-	while (codeStack->size() > 0) {
-		delete codeStack->pop();
+	while (compilerStack->size() > 0) {
+		delete compilerStack->pop();
 	}
-	delete codeStack;
-
-	// mode
-	delete mode;
-
-	// arguments
-	while (argumentsStack->size() > 0) {
-		List<Expression*>* arguments = argumentsStack->pop();
-
-		Iterator<Expression*> argumentsIterator = arguments->iterator();
-		while (argumentsIterator.hasNext()) {
-			delete argumentsIterator.next();
-		}
-
-		delete arguments;
-	}
-	delete argumentsStack;
-
-	// symbol
-	delete symbol;
-	while (symbolStack->size() > 0) {
-		delete symbolStack->pop();
-	}
-	delete symbolStack;
-
-	// string
-	delete string;
-
-	delete conditionalTypeStack;
+	delete compilerStack;
 }
 
 static bool isValidSymbolChar(strchar c) {
@@ -74,101 +147,93 @@ static bool isWhitespace(strchar c) {
 }
 
 static String processCharacter(strchar c, CompilerState* state) {
-	parseChar: switch (state->mode->peek()) {
-	case EXPECT_STATEMENT:
+	parseChar: if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::BODY) {
 		// skip any whitespace
 		if (isWhitespace(c)) {
 			break;
 		}
 
-		if (c == ';') {
-			break;
-		} else if (isValidSymbolChar(c)) {
-			// begin a symbol
-			state->mode->push(SYMBOL);
-			goto parseChar;
-		} else if (c == '#') {
-			state->mode->push(COMMENT);
-			break;
-		} else if (c == '}') {
-			// check if we can close any blocks
-			if (state->codeStack->size() == 0) {
-				return "unexpected }";
-			}
+		BodyCompilerStackFrame* stackFrame =
+				(BodyCompilerStackFrame*) state->compilerStack->peek();
+		if (stackFrame->mode == BodyCompilerStackFrameMode::READY) {
+			if (c == ';') {
+				break;
+			} else if (isValidSymbolChar(c)) {
+				// begin a symbol
+				stackFrame->mode = BodyCompilerStackFrameMode::SYMBOL;
+				state->compilerStack->push(
+						new SymbolCompilerStackFrame(
+								[stackFrame](String symbol) {
+									stackFrame->symbol = symbol;
+								}));
+				goto parseChar;
+			} else if (c == '#') {
+				state->compilerStack->push(
+						new CommentCompilerStackFrame(
+								CommentCompilerStackFrameType::LINE));
+			} else if (c == '}') {
+				delete state->compilerStack->pop();
 
-			state->mode->pop();
-			if (state->mode->peek() == CONDITIONAL) {
 				state->mode->pop();
+				if (state->mode->peek() == CONDITIONAL) {
+					state->mode->pop();
 
-				// close a conditional
-				Code* code = state->codeStack->pop();
-				List<Expression*>* arguments = state->argumentsStack->pop();
-				if (arguments->size() > 1) {
-					crash("conditional should only have one argument");
-				}
-
-				ConditionalBytecodeType type =
-						state->conditionalTypeStack->pop();
-
-				ConditionalBytecode* newBytecode = new ConditionalBytecode(
-						arguments, code, type);
-
-				if (type == IF_CONDITIONALTYPE || type == WHILE_CONDITIONALTYPE
-						|| type == DOWHILE_CONDITIONALTYPE) {
-					state->codeStack->peek()->bytecodes->add(newBytecode);
-				} else if (type == ELSEIF_CONDITIONALTYPE) {
-					Bytecode* lastBytecode = state->codeStack->peek()->bytecodes->getLast();
-					if (lastBytecode->instruction == CONDITIONAL_INSTRUCTION) {
-						ConditionalBytecode* conditionalBytecode =
-								(ConditionalBytecode*) lastBytecode;
-						conditionalBytecode->elseifs->add(newBytecode);
-					} else {
-						return "else not expected here";
+					// close a conditional
+					Code* code = state->codeStack->pop();
+					List<Expression*>* arguments = state->argumentsStack->pop();
+					if (arguments->size() > 1) {
+						crash("conditional should only have one argument");
 					}
+
+					ConditionalBytecodeType type =
+							state->conditionalTypeStack->pop();
+
+					ConditionalBytecode* newBytecode = new ConditionalBytecode(
+							arguments, code, type);
+
+					if (type == IF_CONDITIONALTYPE
+							|| type == WHILE_CONDITIONALTYPE
+							|| type == DOWHILE_CONDITIONALTYPE) {
+						state->codeStack->peek()->bytecodes->add(newBytecode);
+					} else if (type == ELSEIF_CONDITIONALTYPE) {
+						Bytecode* lastBytecode =
+								state->codeStack->peek()->bytecodes->getLast();
+						if (lastBytecode->type == CONDITIONAL_INSTRUCTION) {
+							ConditionalBytecode* conditionalBytecode =
+									(ConditionalBytecode*) lastBytecode;
+							conditionalBytecode->elseifs->add(newBytecode);
+						} else {
+							return "else not expected here";
+						}
+					} else {
+						crash("unexpected conditional type");
+					}
+					break;
 				} else {
-					crash("unexpected conditional type");
+					crash("unexpected mode after closing block");
 				}
+			} else {
+				return "expected statement";
+			}
+		} else if (stackFrame->mode
+				== BodyCompilerStackFrameMode::EXPECT_TERMINATOR) {
+			if (c == ';' || c == '\n' || c == '}') {
+				delete state->compilerStack->pop();
+				goto parseChar;
+			} else if (isWhitespace(c)) {
 				break;
 			} else {
-				crash("unexpected mode after closing block");
+				return "expected statement terminator";
 			}
-		} else {
-			return "expected statement";
-		}
-		break;
-	case EXPECT_STATEMENT_TERMINATOR:
-		if (c == ';' || c == '\n' || c == '}') {
-			state->mode->pop();
-			goto parseChar;
-		} else if (isWhitespace(c)) {
-			break;
-		} else {
-			return "expected statement terminator";
-			break;
-		}
-
-		break;
-	case SYMBOL:
-		if (isValidSymbolChar(c)) {
-			state->symbol->add(c);
-		} else {
-			// end the symbol because this isn't a valid symbol char
-			strchar* sym = (strchar*) create(
-					state->symbol->size() * sizeof(strchar) + 1);
-
-			// copy the list of characters to an actual string
-			Iterator<strchar> symbolIterator = state->symbol->iterator();
-			uint64 symIndex = 0;
-			while (symbolIterator.hasNext()) {
-				sym[symIndex] = symbolIterator.next();
-				symIndex++;
+		} else if (stackFrame->mode == BodyCompilerStackFrameMode::SYMBOL) {
+			// skip any whitespace
+			if (isWhitespace(c)) {
+				break;
 			}
-			sym[symIndex] = NULL; // null terminate
-			state->symbol->clear();
 
-			state->mode->pop();
-
-			if (strequ(sym, "true")) {
+			//=====
+			if (strequ(stackFrame->symbol, "true")) {
 				state->argumentsStack->peek()->add(
 						new BooleanValue(true, true));
 				delete sym;
@@ -176,82 +241,164 @@ static String processCharacter(strchar c, CompilerState* state) {
 				state->argumentsStack->peek()->add(
 						new BooleanValue(false, true));
 				delete sym;
-			} else {
-				state->mode->push(SYMBOL_READY);
-				state->symbolStack->push(sym);
 			}
 
-			// we havn't done anything with this char, so we have to re-parse it
-			goto parseChar;
-		}
-		break;
-	case SYMBOL_READY:
-		// skip any whitespace
-		if (isWhitespace(c)) {
-			break;
-		}
+			// add the string to the arguments
+			Value* stringConstant = new StringValue(str);
+			stringConstant->isConstant = true;
+			state->argumentsStack->peek()->add((Expression*) stringConstant);
+			state->mode->pop();
+			//====== TODO this doesn't belong here, rather in the argument parsing stack frame
 
-		if (c == '(') {
-			if (strequ(state->symbolStack->peek(), "while")) {
-				delete state->symbolStack->pop();
+			if (c == '(') {
+				if (strequ(stackFrame->symbol, "while")) {
+					delete stackFrame->symbol;
+					delete stackFrame->symbol;
 
-				state->argumentsStack->push(new List<Expression*>());
+					state->compilerStack->push(
+							new WhileCompilerStackFrame(false));
+				} else if (strequ(stackFrame->symbol, "dowhile")) {
+					delete stackFrame->symbol;
+					delete stackFrame->symbol;
 
-				state->mode->pop();
-				state->mode->push(CONDITIONAL);
-				state->mode->push(EXPRESSION);
+					state->compilerStack->push(
+							new WhileCompilerStackFrame(true));
+				} else if (strequ(stackFrame->symbol, "if")) {
+					delete stackFrame->symbol;
 
-				state->conditionalTypeStack->push(WHILE_CONDITIONALTYPE);
-			} else if (strequ(state->symbolStack->peek(), "if")) {
-				delete state->symbolStack->pop();
+					state->compilerStack->push(
+							new IfCompilerStackFrame(
+									IfCompilerStackFrameType::IF));
+				} else if (strequ(stackFrame->symbol, "elseif")) {
+					delete stackFrame->symbol;
 
-				state->argumentsStack->push(new List<Expression*>());
+					state->compilerStack->push(
+							new IfCompilerStackFrame(
+									IfCompilerStackFrameType::ELSEIF));
+				} else {
+					state->compilerStack->push(
+							new FunctionCallCompilerStackFrame(
+									stackFrame->symbol));
+				}
+			} else if (c == '{') {
+				if (strequ(stackFrame->symbol, "else")) {
+					delete stackFrame->symbol;
 
-				state->mode->pop();
-				state->mode->push(CONDITIONAL);
-				state->mode->push(EXPRESSION);
-
-				state->conditionalTypeStack->push(IF_CONDITIONALTYPE);
-			} else if (strequ(state->symbolStack->peek(), "elseif")) {
-				delete state->symbolStack->pop();
-
-				state->argumentsStack->push(new List<Expression*>());
-
-				state->mode->pop();
-				state->mode->push(CONDITIONAL);
-				state->mode->push(EXPRESSION);
-
-				state->conditionalTypeStack->push(ELSEIF_CONDITIONALTYPE);
-			} else {
-				// begin function
-				state->argumentsStack->push(new List<Expression*>());
-
-				state->mode->pop();
-				state->mode->push(FUNCTION);
-				state->mode->push(EXPRESSION);
-			}
-		} else if (c == '{') {
-			if (strequ(state->symbolStack->peek(), "else")) {
-				delete state->symbolStack->pop();
-
-				state->argumentsStack->push(new List<Expression*>());
-				state->argumentsStack->peek()->add(
-						new BooleanValue(true, true));
-
-				state->mode->pop();
-				state->mode->push(CONDITIONAL);
-				state->mode->push(EXPECT_STATEMENT);
-				state->codeStack->push(new Code());
-
-				state->conditionalTypeStack->push(ELSEIF_CONDITIONALTYPE);
+					state->compilerStack->push(
+							new IfCompilerStackFrame(
+									IfCompilerStackFrameType::ELSE));
+				} else {
+					return "unexpected character";
+				}
 			} else {
 				return "unexpected character";
 			}
 		} else {
-			return "unexpected character";
+			crash("unknown BodyCompilerStackFrameType");
 		}
-		break;
-	case EXPRESSION:
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::IF) {
+		IfCompilerStackFrame* stackFrame =
+				(IfCompilerStackFrame*) state->compilerStack->peek();
+
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::WHILE) {
+		WhileCompilerStackFrame* stackFrame =
+				(WhileCompilerStackFrame*) state->compilerStack->peek();
+
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::SYMBOL) {
+		SymbolCompilerStackFrame* stackFrame =
+				(SymbolCompilerStackFrame*) state->compilerStack->peek();
+
+		if (isValidSymbolChar(c)) {
+			stackFrame->symbol->add(c);
+		} else {
+			// end the symbol because this isn't a valid symbol char
+			strchar* sym = (strchar*) create(
+					stackFrame->symbol->size() * sizeof(strchar) + 1);
+
+			// copy the list of characters to an actual string
+			Iterator<strchar> symbolIterator = stackFrame->symbol->iterator();
+			uint64 symIndex = 0;
+			while (symbolIterator.hasNext()) {
+				sym[symIndex] = symbolIterator.next();
+				symIndex++;
+			}
+			sym[symIndex] = NULL; // null terminated
+
+			delete state->compilerStack->pop();
+			stackFrame->symbolCallback(sym);
+
+			// we havn't done anything with this char, so we have to re-parse it
+			goto parseChar;
+		}
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::STRING) {
+		StringCompilerStackFrame* stackFrame =
+				(StringCompilerStackFrame*) state->compilerStack->peek();
+
+		if (stackFrame->escaping) {
+			if (c == 'n') {
+				// new line escape sequence
+				stackFrame->string->add('\n');
+				stackFrame->string->add('\r');
+			} else if (c == '\\') {
+				// backslash escape sequence
+				stackFrame->string->add('\\');
+			} else if (c == '\'') {
+				// quote escape sequence
+				stackFrame->string->add('\'');
+			} else {
+				return "unrecognized escape sequence";
+			}
+
+			// done with escape
+			stackFrame->escaping = false;
+		} else {
+			if (c == '\\') {
+				// begin escape
+				stackFrame->escaping = true;
+			} else if (c == '\'') {
+				// end string
+				strchar* str = (strchar*) create(
+						stackFrame->string->size() * sizeof(strchar) + 1);
+
+				// copy the list of characters to an actual string
+				Iterator<strchar> stringIterator =
+						stackFrame->string->iterator();
+				uint64 strIndex = 0;
+				while (stringIterator.hasNext()) {
+					str[strIndex] = stringIterator.next();
+					strIndex++;
+				}
+				str[strIndex] = NULL; // null terminate
+
+				delete state->compilerStack->pop();
+				stackFrame->stringCallback(str);
+			} else {
+				// just another character
+				stackFrame->string->add(c);
+			}
+		}
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::COMMENT) {
+		CommentCompilerStackFrame* stackFrame =
+				(CommentCompilerStackFrame*) state->compilerStack->peek();
+
+		if (stackFrame->type == CommentCompilerStackFrameType::LINE) {
+			if (c == '\n') {
+				delete state->compilerStack->pop();
+			}
+			// ignore character
+		} else {
+			crash("unknown CommentCompilerStackFrameType");
+		}
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::EXPRESSION) {
+		ExpressionCompilerStackFrame* stackFrame =
+				(ExpressionCompilerStackFrame*) state->compilerStack->peek();
+
 		// skip any whitespace
 		if (isWhitespace(c)) {
 			break;
@@ -259,16 +406,21 @@ static String processCharacter(strchar c, CompilerState* state) {
 
 		if (c == '\'') {
 			// begin string
-			state->mode->push(STRING);
-			state->requireExpression = false;
+			state->compilerStack->push(
+					new StringCompilerStackFrame([stackFrame](String string) {
+						stackFrame->expressionCallback(new StringValue(string));
+					}));
 		} else if (isValidSymbolChar(c)) {
 			state->mode->push(SYMBOL);
 			state->requireExpression = false;
 			goto parseChar;
 		} else if (c == '(') {
-			state->mode->push(REQUIRE_CLOSE_EXPRESSION);
-			state->mode->push(EXPRESSION);
-			// TODO open expression
+			state->compilerStack->push(
+					new ExpressionCompilerStackFrame(
+							[stackFrame](Expression* expression) {
+								// TODO do something with expression
+								// TODO maybe expression stack frame has to have close parenthesis flag?
+							}));
 		} else {
 			if (state->mode->peek(1) == REQUIRE_CLOSE_EXPRESSION) {
 				return "expression needs to be closed";
@@ -280,6 +432,35 @@ static String processCharacter(strchar c, CompilerState* state) {
 			state->requireExpression = false;
 			goto parseChar;
 		}
+	} else if (state->compilerStack->peek()->type
+			== CompilerStackFrameType::ARGUMENT) {
+		ArgumentCompilerStackFrame* stackFrame =
+				(ArgumentCompilerStackFrame*) state->compilerStack->peek();
+		if (c == ',') {
+			stackFrame->requireArgument = true;
+		} else if (c == ')') {
+			if (stackFrame->requireArgument) {
+				return "expected argument";
+			}
+
+			delete state->compilerStack->pop();
+		} else {
+			stackFrame->requireArgument = false;
+			state->compilerStack->push(
+					new ExpressionCompilerStackFrame(
+							[stackFrame](Expression* expression) {
+								stackFrame->argumentCallback(expression);
+							}));
+		}
+	} else {
+		crash("unknown CompilerStackFrameType");
+	}
+
+	// ====================================================================================================================================
+
+	parseChar: switch (state->mode->peek()) {
+	case EXPRESSION:
+
 		break;
 	case FUNCTION:
 		// skip any whitespace
@@ -363,54 +544,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 		state->mode->push(EXPRESSION);
 		break;
 	case STRING:
-		if (state->escaping) {
-			if (c == 'n') {
-				// new line escape sequence
-				state->string->add('\n');
-				state->string->add('\r');
-			} else if (c == '\\') {
-				// backslash escape sequence
-				state->string->add('\\');
-			} else if (c == '\'') {
-				// quote escape sequence
-				state->string->add('\'');
-			} else {
-				return "unrecognized escape sequence";
-				break;
-			}
 
-			// done with escape
-			state->escaping = false;
-		} else {
-			if (c == '\\') {
-				// begin escape
-				state->escaping = true;
-			} else if (c == '\'') {
-				// end string
-				strchar* str = (strchar*) create(
-						state->string->size() * sizeof(strchar) + 1);
-
-				// copy the list of characters to an actual string
-				Iterator<strchar> stringIterator = state->string->iterator();
-				uint64 strIndex = 0;
-				while (stringIterator.hasNext()) {
-					str[strIndex] = stringIterator.next();
-					strIndex++;
-				}
-				str[strIndex] = NULL; // null terminate
-				state->string->clear();
-
-				// add the string to the arguments
-				Value* stringConstant = new StringValue(str);
-				stringConstant->isConstant = true;
-				state->argumentsStack->peek()->add(
-						(Expression*) stringConstant);
-				state->mode->pop();
-			} else {
-				// just another character
-				state->string->add(c);
-			}
-		}
 		break;
 	case COMMENT:
 		if (c == '\n') {

@@ -46,7 +46,7 @@ enum class FunctionCallStackFrameMode {
 };
 class FunctionCallStackFrame: public ExecutionStackFrame {
 public:
-	FunctionCallStackFrame(Function* function, List<Expression*>* arguments);
+	FunctionCallStackFrame(Function* function, List<Expression*>* arguments, auto response);
 	~FunctionCallStackFrame();
 
 	FunctionCallStackFrameMode mode;
@@ -54,6 +54,7 @@ public:
 	Function* function;
 	List<Expression*>* arguments;
 	List<Value*>* evaluations;
+	auto response;
 };
 
 // argument
@@ -68,14 +69,6 @@ public:
 };
 
 // if
-class IfConditionCode {
-public:
-	IfConditionCode(Expression* condition, Code* code);
-	~IfConditionCode();
-
-	Expression* condition;
-	Code* code;
-};
 enum class IfStackFrameMode {
 	EVALUATE, TEST, RUN, DONE
 };

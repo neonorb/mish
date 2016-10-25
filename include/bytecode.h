@@ -8,36 +8,40 @@
 #ifndef INCLUDE_BYTECODE_H_
 #define INCLUDE_BYTECODE_H_
 
-class ConditionalBytecode;
-
-#include <instruction.h>
-
-class Bytecode {
-public:
-	Instruction instruction;
-
-	Bytecode(Instruction instruction);
-	virtual ~Bytecode();
-};
-
-enum ConditionalBytecodeType {
-	WHILE_CONDITIONALTYPE, IF_CONDITIONALTYPE, ELSEIF_CONDITIONALTYPE, DOWHILE_CONDITIONALTYPE
-};
+class Bytecode;
+class IfConditionCode;
 
 #include <mish.h>
 
-class ConditionalBytecode: public Bytecode {
-public:
-	List<Expression*>* condition;
-	Code* code;
-	ConditionalBytecodeType type;
-	List<ConditionalBytecode*>* elseifs;
-
-	ConditionalBytecode(List<Expression*>* condition, Code* code,
-			ConditionalBytecodeType type);
-	virtual ~ConditionalBytecode();
+enum class BytecodeType {
+	FUNC_CALL, IF, WHILE
 };
 
+class Bytecode {
+public:
+	BytecodeType type;
+
+	Bytecode(BytecodeType instruction);
+	virtual ~Bytecode();
+};
+
+// if
+class IfConditionCode {
+public:
+	IfConditionCode(Expression* condition, Code* code);
+	~IfConditionCode();
+
+	Expression* condition;
+	Code* code;
+};
+class IfBytecode: public Bytecode {
+public:
+	IfBytecode();
+	~IfBytecode();
+	List<IfConditionCode*>* ifs;
+};
+
+// while
 class WhileBytecode: public Bytecode {
 public:
 	Expression* condition;
@@ -45,6 +49,7 @@ public:
 	bool isDoWhile;
 
 	WhileBytecode(Expression* condition, Code* code, bool isDoWhile);
+	~WhileBytecode();
 };
 
 #endif /* INCLUDE_BYTECODE_H_ */
