@@ -9,7 +9,6 @@
 #define INCLUDE_MISH_H_
 
 #include <code.h>
-#include <functioncallvoid.h>
 #include <functioncallreturn.h>
 #include <string.h>
 #include <syscall.h>

@@ -41,12 +41,13 @@ public:
 };
 
 // function call
+typedef Lambda<void*, Value*> ValueCallback;
 enum class FunctionCallStackFrameMode {
 	EVALUATE, CALL, RETURN
 };
 class FunctionCallStackFrame: public ExecutionStackFrame {
 public:
-	FunctionCallStackFrame(Function* function, List<Expression*>* arguments, auto response);
+	FunctionCallStackFrame(Function* function, List<Expression*>* arguments, ValueCallback response);
 	~FunctionCallStackFrame();
 
 	FunctionCallStackFrameMode mode;
@@ -54,7 +55,7 @@ public:
 	Function* function;
 	List<Expression*>* arguments;
 	List<Value*>* evaluations;
-	auto response;
+	ValueCallback response;
 };
 
 // argument

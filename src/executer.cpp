@@ -30,7 +30,7 @@ BytecodeStackFrame::~BytecodeStackFrame() {
 
 // FunctionCallStackFrame
 FunctionCallStackFrame::FunctionCallStackFrame(Function* function,
-		List<Expression*>* arguments, auto response) :
+		List<Expression*>* arguments, ValueCallback response) :
 		ExecutionStackFrame(ExecutionStackFrameType::FUNCTION_CALL) {
 	mode = FunctionCallStackFrameMode::EVALUATE;
 
@@ -117,7 +117,7 @@ ExecuterState::~ExecuterState() {
 // ---- execution ----
 
 static void evaluateExpression(Expression* expression, ExecuterState* state,
-		auto response) {
+		ValueCallback response) {
 	switch (expression->expressionType) {
 	case VALUE_EXPRESSION: {
 		Value* constant = (Value*) expression;
@@ -150,7 +150,12 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				state->executionStack->push(
 						new FunctionCallStackFrame(functionCallVoid->function,
 								functionCallVoid->arguments,
-								[](Value* response) { /* discard the return value */}));
+								ValueCallback(NULL,
+										[](void* scope, Value* response) -> void* {
+											/* discard the return value */
+											delete response;
+											return NULL;
+										})));
 			} else if (bytecode->type == BytecodeType::IF) {
 				IfBytecode* ifBytecode = (IfBytecode*) bytecode;
 				state->executionStack->push(new IfStackFrame(ifBytecode->ifs));
@@ -212,10 +217,13 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				(ArgumentStackFrame*) state->executionStack->peek();
 		if (stackFrame->expressionIterator->hasNext()) {
 			Expression* expression = stackFrame->expressionIterator->next();
-			evaluateExpression(expression, state, [stackFrame](Value* value) {
-				value->createReference();
-				stackFrame->evaluations->add(value);
-			});
+			evaluateExpression(expression, state,
+					ValueCallback(stackFrame,
+							[](void* stackFrame, Value* value) -> void* {
+								value->createReference();
+								((ArgumentStackFrame*) stackFrame)->evaluations->add(value);
+								return NULL;
+							}));
 		} else {
 			// out of evaluations
 			delete state->executionStack->pop();
@@ -228,16 +236,21 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			if (stackFrame->ifsIterator->hasNext()) {
 				evaluateExpression(
 						stackFrame->ifsIterator->peekNext()->condition, state,
-						[stackFrame](Value* value) {
-							// delete old value
-							if(stackFrame->lastEvaluation!= NULL) {
-								stackFrame->lastEvaluation->deleteReference();
-							}
+						ValueCallback(stackFrame,
+								[](void* stackFrameArgument, Value* value) -> void* {
+									IfStackFrame* stackFrame = (IfStackFrame*) stackFrameArgument;
 
-							// set new value
-							stackFrame->lastEvaluation = value;
-							value->createReference();
-						});
+									// delete old value
+									if(stackFrame->lastEvaluation!= NULL) {
+										stackFrame->lastEvaluation->deleteReference();
+									}
+
+									// set new value
+									stackFrame->lastEvaluation = value;
+									value->createReference();
+
+									return NULL;
+								}));
 				stackFrame->mode = IfStackFrameMode::TEST;
 			} else {
 				delete state->executionStack->pop();
@@ -269,16 +282,21 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				(WhileStackFrame*) state->executionStack->peek();
 		if (stackFrame->mode == WhileStackFrameMode::EVALUATE) {
 			evaluateExpression(stackFrame->condition, state,
-					[stackFrame](Value* value) {
-						// delete old value
-						if(stackFrame->lastEvaluation!= NULL) {
-							stackFrame->lastEvaluation->deleteReference();
-						}
+					ValueCallback(stackFrame,
+							[](void* stackFrameArgument, Value* value) -> void* {
+								WhileStackFrame* stackFrame = (WhileStackFrame*) stackFrameArgument;
 
-						// set new value
-						stackFrame->lastEvaluation = value;
-						value->createReference();
-					});
+								// delete old value
+								if(stackFrame->lastEvaluation!= NULL) {
+									stackFrame->lastEvaluation->deleteReference();
+								}
+
+								// set new value
+								stackFrame->lastEvaluation = value;
+								value->createReference();
+
+								return NULL;
+							}));
 			stackFrame->mode = WhileStackFrameMode::TEST;
 		} else if (stackFrame->mode == WhileStackFrameMode::TEST) {
 			if (((BooleanValue*) stackFrame->lastEvaluation)->value) {

@@ -8,8 +8,10 @@
 #ifndef FUNCTIONCALLRETURN_H_
 #define FUNCTIONCALLRETURN_H_
 
+class FunctionCallReturn;
+
 #include <bytecode.h>
-#include <function.h>
+#include <lambda.h>
 #include <list.h>
 #include <expression.h>
 #include <value.h>

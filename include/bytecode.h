@@ -9,7 +9,10 @@
 #define INCLUDE_BYTECODE_H_
 
 class Bytecode;
+class FunctionCallVoid;
 class IfConditionCode;
+class IfBytecode;
+class WhileBytecode;
 
 #include <mish.h>
 
@@ -25,6 +28,15 @@ public:
 	virtual ~Bytecode();
 };
 
+class FunctionCallVoid: public Bytecode {
+public:
+	FunctionCallVoid(Function* function, List<Expression*>* arguments);
+	virtual ~FunctionCallVoid();
+
+	Function* function;
+	List<Expression*>* arguments;
+};
+
 // if
 class IfConditionCode {
 public:
@@ -37,6 +49,7 @@ public:
 class IfBytecode: public Bytecode {
 public:
 	IfBytecode();
+	IfBytecode(IfConditionCode* conditionCode);
 	~IfBytecode();
 	List<IfConditionCode*>* ifs;
 };

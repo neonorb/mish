@@ -6,7 +6,6 @@
  */
 
 #include <bytecode.h>
-#include <functioncallvoid.h>
 
 // bytecode
 Bytecode::Bytecode(BytecodeType instruction) {
@@ -14,6 +13,22 @@ Bytecode::Bytecode(BytecodeType instruction) {
 }
 
 Bytecode::~Bytecode() {
+}
+
+FunctionCallVoid::FunctionCallVoid(Function* function,
+		List<Expression*>* arguments) :
+		Bytecode(BytecodeType::FUNC_CALL) {
+	this->function = function;
+	this->arguments = arguments;
+}
+
+FunctionCallVoid::~FunctionCallVoid() {
+	Iterator<Expression*> iterator = arguments->iterator();
+	while (iterator.hasNext()) {
+		delete iterator.next();
+	}
+
+	delete arguments;
 }
 
 // IfConditionCode
@@ -30,6 +45,11 @@ IfConditionCode::~IfConditionCode() {
 IfBytecode::IfBytecode() :
 		Bytecode(BytecodeType::IF) {
 	ifs = new List<IfConditionCode*>();
+}
+
+IfBytecode::IfBytecode(IfConditionCode* conditionCode) :
+		IfBytecode() {
+	ifs->add(conditionCode);
 }
 
 IfBytecode::~IfBytecode() {
