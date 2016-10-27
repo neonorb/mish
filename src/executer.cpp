@@ -139,11 +139,13 @@ static void evaluateExpression(Expression* expression, ExecuterState* state,
 ExecuteStatus mish_execute(ExecuterState* state) {
 	if (state->executionStack->peek()->type
 			== ExecutionStackFrameType::BYTECODE) {
+		debug("bytecode frame type");
 		BytecodeStackFrame* stackFrame =
 				(BytecodeStackFrame*) state->executionStack->peek();
 		if (stackFrame->bytecodesIterator->hasNext()) {
 			Bytecode* bytecode = stackFrame->bytecodesIterator->next();
 			if (bytecode->type == BytecodeType::FUNC_CALL) {
+				debug("function call");
 				FunctionCallVoid* functionCallVoid =
 						(FunctionCallVoid*) bytecode;
 
@@ -230,6 +232,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 		}
 	} else if (state->executionStack->peek()->type
 			== ExecutionStackFrameType::IF) {
+		debug("if");
 		IfStackFrame* stackFrame =
 				(IfStackFrame*) state->executionStack->peek();
 		if (stackFrame->mode == IfStackFrameMode::EVALUATE) {
@@ -324,6 +327,7 @@ void mish_execute(Code* code) {
 
 // start executing on first bytecode
 // TODO change this so that execution can resume and exit after every cycle
+	debug("bytecodes size", code->bytecodes->size());
 	state->executionStack->push(new BytecodeStackFrame(code->bytecodes));
 
 	while (true) {

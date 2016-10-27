@@ -134,7 +134,7 @@ public:
 
 // FunctionCallCompilerStackFrame
 enum class FunctionCallCompilerStackFrameMode {
-	EXPECT_P, ARGUMENTS, DONE
+	EXPECT_P, ARGUMENTS
 };
 enum class FunctionCallCompilerStackFrameType {
 	BYTECODE, EXPRESSION

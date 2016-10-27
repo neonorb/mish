@@ -16,8 +16,8 @@ void test();
 #define TEST1        \
 "if (false) {        \
 	__triggerFlag1() \
-}                    \
-__triggerFlag2();"
+};                    \
+__triggerFlag2()"
 
 // ---- end tests ----
 

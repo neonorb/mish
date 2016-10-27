@@ -78,22 +78,22 @@ static void mish() {
 
 	// ---- register syscalls ----
 	List<ValueType>* triggerFlag1ParameterTypes = new List<ValueType>();
-	Function* triggerFlag1 = new Function("__triggerFlag1", triggerFlag1ParameterTypes, VOID_VALUE, triggerFlag1Function);
+	Function* triggerFlag1 = new Function("__triggerFlag1"_H, triggerFlag1ParameterTypes, VOID_VALUE, triggerFlag1Function);
 	mish_syscalls.add(triggerFlag1);
 	testSyscalls.add(triggerFlag1);
 
 	List<ValueType>* triggerFlag2ParameterTypes = new List<ValueType>();
-	Function* triggerFlag2 = new Function("__triggerFlag2", triggerFlag2ParameterTypes, VOID_VALUE, triggerFlag2Function);
+	Function* triggerFlag2 = new Function("__triggerFlag2"_H, triggerFlag2ParameterTypes, VOID_VALUE, triggerFlag2Function);
 	mish_syscalls.add(triggerFlag2);
 	testSyscalls.add(triggerFlag2);
 
 	List<ValueType>* trueFalseParameterTypes = new List<ValueType>();
-	Function* trueFalse = new Function("__trueFalse", trueFalseParameterTypes, VOID_VALUE, trueFalseFunction);
+	Function* trueFalse = new Function("__trueFalse"_H, trueFalseParameterTypes, VOID_VALUE, trueFalseFunction);
 	mish_syscalls.add(trueFalse);
 	testSyscalls.add(trueFalse);
 
 	List<ValueType>* trueTrueFalseParameterTypes = new List<ValueType>();
-	Function* trueTrueFalse = new Function("__trueTrueFalse", trueTrueFalseParameterTypes, VOID_VALUE, trueTrueFalseFunction);
+	Function* trueTrueFalse = new Function("__trueTrueFalse"_H, trueTrueFalseParameterTypes, VOID_VALUE, trueTrueFalseFunction);
 	mish_syscalls.add(trueTrueFalse);
 	testSyscalls.add(trueTrueFalse);
 

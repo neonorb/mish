@@ -206,6 +206,9 @@ static bool isWhitespace(strchar c) {
 static String processCharacter(strchar c, CompilerState* state) {
 	parseChar:
 
+	debug(c);
+	debug("frame type", (uint64) state->compilerStack->peek()->type);
+
 	// skip any whitespace
 	if (state->compilerStack->peek()->type != CompilerStackFrameType::SYMBOL
 			&& state->compilerStack->peek()->type
@@ -222,13 +225,18 @@ static String processCharacter(strchar c, CompilerState* state) {
 		BodyCompilerStackFrame* stackFrame =
 				(BodyCompilerStackFrame*) state->compilerStack->peek();
 
+		debug("body mode", (uint64) stackFrame->mode);
+
 		if (stackFrame->mode == BodyCompilerStackFrameMode::READY
 				|| stackFrame->mode
 						== BodyCompilerStackFrameMode::EXPECT_TERMINATOR) {
 			if (c == '}') {
+				debug("closing block");
 				stackFrame->codeCallback(stackFrame->code);
 				delete state->compilerStack->pop();
-				return NULL;
+				// the statement that created this body needs to be closed, run its closing code
+				goto parseChar;
+				// TODO potential issue with closing multiple bodys...maybe
 			}
 		}
 
@@ -242,6 +250,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 				return NULL;
 			} else if (isValidSymbolChar(c)) {
 				// begin a symbol
+				debug("begin symbol");
 				stackFrame->mode = BodyCompilerStackFrameMode::SYMBOL;
 				state->compilerStack->push(
 						new SymbolCompilerStackFrame(
@@ -251,7 +260,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 											return NULL;
 										})));
 				goto parseChar;
-				// TODO maybe not needed?
 			} else if (c == '#') {
 				state->compilerStack->push(
 						new CommentCompilerStackFrame(
@@ -263,7 +271,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 				== BodyCompilerStackFrameMode::EXPECT_TERMINATOR) {
 			if (c == ';' || c == '\n') {
 				stackFrame->mode = BodyCompilerStackFrameMode::READY;
-				goto parseChar;
 			} else if (isWhitespace(c)) {
 				return NULL;
 			} else {
@@ -278,7 +285,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 			if (strequ(stackFrame->symbol, "while")) {
 				// while
 				delete stackFrame->symbol;
-				delete stackFrame->symbol;
 
 				state->compilerStack->push(
 						new WhileCompilerStackFrame(false,
@@ -289,7 +295,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 										})));
 			} else if (strequ(stackFrame->symbol, "dowhile")) {
 				// dowhile
-				delete stackFrame->symbol;
 				delete stackFrame->symbol;
 
 				state->compilerStack->push(
@@ -325,6 +330,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 					return "elseif statement may only follow an if statement";
 				}
 			} else if (strequ(stackFrame->symbol, "else")) {
+				// else
 				delete stackFrame->symbol;
 
 				Bytecode* lastBytecode = stackFrame->code->bytecodes->getLast();
@@ -345,19 +351,22 @@ static String processCharacter(strchar c, CompilerState* state) {
 						new FunctionCallCompilerStackFrame(stackFrame->symbol,
 								FunctionCallBytecodeCallback(stackFrame,
 										[](void* stackFrame, FunctionCallVoid* functionBytecode) -> void* {
+											debug("adding function to bytecodes");
 											((BodyCompilerStackFrame*)stackFrame)->code->bytecodes->add(functionBytecode);
 											return NULL;
 										})));
 			}
+			stackFrame->mode = BodyCompilerStackFrameMode::EXPECT_TERMINATOR;
 
 			goto parseChar;
 		} else {
-			crash("unknown BodyCompilerStackFrameType");
+			crash("unknown BodyCompilerStackFrameMode");
 		}
 	} else if (state->compilerStack->peek()->type
 			== CompilerStackFrameType::IF) {
 		IfCompilerStackFrame* stackFrame =
 				(IfCompilerStackFrame*) state->compilerStack->peek();
+		debug("if mode", (uint64) stackFrame->mode);
 		if (stackFrame->mode == IfCompilerStackFrameMode::EXPECT_P) {
 			if (c == '(') {
 				stackFrame->mode = IfCompilerStackFrameMode::EXPECT_CONDITION;
@@ -399,6 +408,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 				return "expected {";
 			}
 		} else if (stackFrame->mode == IfCompilerStackFrameMode::DONE) {
+			debug("if done");
 			IfConditionCode* ifConditionCode = new IfConditionCode(
 					stackFrame->condition, stackFrame->code);
 			if (stackFrame->type == IfCompilerStackFrameType::IF) {
@@ -462,6 +472,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 			stackFrame->whileBytecodeCallback(
 					new WhileBytecode(stackFrame->condition, stackFrame->code,
 							stackFrame->isDoWhile));
+			delete state->compilerStack->pop();
 		} else {
 			crash("unknown WhileCompilerStackFrameMode");
 		}
@@ -469,6 +480,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 			== CompilerStackFrameType::SYMBOL) {
 		SymbolCompilerStackFrame* stackFrame =
 				(SymbolCompilerStackFrame*) state->compilerStack->peek();
+		debug("symbol");
 
 		if (isValidSymbolChar(c)) {
 			stackFrame->symbol->add(c);
@@ -588,6 +600,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 											delete stateStruct->state->compilerStack->pop();
 										} else {
 											stateStruct->stackFrame->symbol = symbol;
+											delete stateStruct->state->compilerStack->pop();
 										}
 										delete stateStruct;
 										return NULL;
@@ -633,6 +646,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 										((ArgumentCompilerStackFrame*)stackFrame)->argumentCallback(expression);
 										return NULL;
 									})));
+			goto parseChar;
 		}
 	} else if (state->compilerStack->peek()->type
 			== CompilerStackFrameType::FUNCTION_CALL) {
@@ -694,15 +708,19 @@ static String processCharacter(strchar c, CompilerState* state) {
 						continueFunctionSearch: continue;
 					}
 				}
-				delete functionName;
+				//delete functionName;
 
 				if (!found) {
 					return "syscall not found";
 				}
 
+				debug("creating and calling back function call");
 				// create and add the function call
 				if (stackFrame->type
 						== FunctionCallCompilerStackFrameType::BYTECODE) {
+					stackFrame->functionCallBytecodeCallback(
+							new FunctionCallVoid(function,
+									stackFrame->arguments));
 				} else if (stackFrame->type
 						== FunctionCallCompilerStackFrameType::EXPRESSION) {
 					stackFrame->functionCallExpressionCallback(
@@ -721,9 +739,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 											((FunctionCallCompilerStackFrame*)stackFrame)->arguments->add(argument);
 											return NULL;
 										})));
+				goto parseChar;
 			}
-		} else if (stackFrame->mode
-				== FunctionCallCompilerStackFrameMode::DONE) {
 		} else {
 			crash("unknown FunctionCallCompilerStackFrameMode");
 		}
