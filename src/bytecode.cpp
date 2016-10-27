@@ -38,7 +38,8 @@ IfConditionCode::IfConditionCode(Expression* condition, Code* code) {
 }
 
 IfConditionCode::~IfConditionCode() {
-
+	delete condition;
+	delete code;
 }
 
 // IfBytecode

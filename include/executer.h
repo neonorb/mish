@@ -26,7 +26,7 @@ enum class ExecutionStackFrameType {
 class ExecutionStackFrame {
 public:
 	ExecutionStackFrame(ExecutionStackFrameType type);
-	~ExecutionStackFrame();
+	virtual ~ExecutionStackFrame();
 
 	ExecutionStackFrameType type;
 };

@@ -94,6 +94,7 @@ SymbolCompilerStackFrame::SymbolCompilerStackFrame(
 }
 
 SymbolCompilerStackFrame::~SymbolCompilerStackFrame() {
+	debug("================================== symbolcommpilerstackframe down ===============================");
 	delete symbol;
 }
 
@@ -356,6 +357,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 											return NULL;
 										})));
 			}
+			stackFrame->symbol = NULL;
 			stackFrame->mode = BodyCompilerStackFrameMode::EXPECT_TERMINATOR;
 
 			goto parseChar;
@@ -501,6 +503,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 			debug("new symbol");
 			debug(sym);
 
+			debug("destructing symbol");
+			debug("frametype", (uint64) state->compilerStack->peek()->type);
 			stackFrame->symbolCallback(sym);
 			delete state->compilerStack->pop();
 
@@ -593,15 +597,13 @@ static String processCharacter(strchar c, CompilerState* state) {
 										if (strequ(symbol, "true")) {
 											stateStruct->stackFrame->expressionCallback(new BooleanValue(true, true));
 											delete symbol;
-											delete stateStruct->state->compilerStack->pop();
 										} else if (strequ(symbol, "false")) {
 											stateStruct->stackFrame->expressionCallback(new BooleanValue(false, true));
 											delete symbol;
-											delete stateStruct->state->compilerStack->pop();
 										} else {
 											stateStruct->stackFrame->symbol = symbol;
-											delete stateStruct->state->compilerStack->pop();
 										}
+										delete stateStruct->state->compilerStack->pop();
 										delete stateStruct;
 										return NULL;
 									})));

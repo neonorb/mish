@@ -34,7 +34,7 @@ enum class CompilerStackFrameType {
 class CompilerStackFrame {
 public:
 	CompilerStackFrame(CompilerStackFrameType type);
-	~CompilerStackFrame();
+	virtual ~CompilerStackFrame();
 
 	CompilerStackFrameType type;
 };

@@ -31,7 +31,7 @@ public:
 class FunctionCallVoid: public Bytecode {
 public:
 	FunctionCallVoid(Function* function, List<Expression*>* arguments);
-	virtual ~FunctionCallVoid();
+	~FunctionCallVoid();
 
 	Function* function;
 	List<Expression*>* arguments;
