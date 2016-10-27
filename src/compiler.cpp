@@ -94,7 +94,6 @@ SymbolCompilerStackFrame::SymbolCompilerStackFrame(
 }
 
 SymbolCompilerStackFrame::~SymbolCompilerStackFrame() {
-	debug("================================== symbolcommpilerstackframe down ===============================");
 	delete symbol;
 }
 
@@ -207,9 +206,6 @@ static bool isWhitespace(strchar c) {
 static String processCharacter(strchar c, CompilerState* state) {
 	parseChar:
 
-	debug(c);
-	debug("frame type", (uint64) state->compilerStack->peek()->type);
-
 	// skip any whitespace
 	if (state->compilerStack->peek()->type != CompilerStackFrameType::SYMBOL
 			&& state->compilerStack->peek()->type
@@ -226,13 +222,10 @@ static String processCharacter(strchar c, CompilerState* state) {
 		BodyCompilerStackFrame* stackFrame =
 				(BodyCompilerStackFrame*) state->compilerStack->peek();
 
-		debug("body mode", (uint64) stackFrame->mode);
-
 		if (stackFrame->mode == BodyCompilerStackFrameMode::READY
 				|| stackFrame->mode
 						== BodyCompilerStackFrameMode::EXPECT_TERMINATOR) {
 			if (c == '}') {
-				debug("closing block");
 				stackFrame->codeCallback(stackFrame->code);
 				delete state->compilerStack->pop();
 				// the statement that created this body needs to be closed, run its closing code
@@ -251,7 +244,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 				return NULL;
 			} else if (isValidSymbolChar(c)) {
 				// begin a symbol
-				debug("begin symbol");
 				stackFrame->mode = BodyCompilerStackFrameMode::SYMBOL;
 				state->compilerStack->push(
 						new SymbolCompilerStackFrame(
@@ -346,13 +338,10 @@ static String processCharacter(strchar c, CompilerState* state) {
 				}
 			} else {
 				// function
-				debug("new function");
-				debug(stackFrame->symbol);
 				state->compilerStack->push(
 						new FunctionCallCompilerStackFrame(stackFrame->symbol,
 								FunctionCallBytecodeCallback(stackFrame,
 										[](void* stackFrame, FunctionCallVoid* functionBytecode) -> void* {
-											debug("adding function to bytecodes");
 											((BodyCompilerStackFrame*)stackFrame)->code->bytecodes->add(functionBytecode);
 											return NULL;
 										})));
@@ -368,7 +357,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 			== CompilerStackFrameType::IF) {
 		IfCompilerStackFrame* stackFrame =
 				(IfCompilerStackFrame*) state->compilerStack->peek();
-		debug("if mode", (uint64) stackFrame->mode);
 		if (stackFrame->mode == IfCompilerStackFrameMode::EXPECT_P) {
 			if (c == '(') {
 				stackFrame->mode = IfCompilerStackFrameMode::EXPECT_CONDITION;
@@ -410,7 +398,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 				return "expected {";
 			}
 		} else if (stackFrame->mode == IfCompilerStackFrameMode::DONE) {
-			debug("if done");
 			IfConditionCode* ifConditionCode = new IfConditionCode(
 					stackFrame->condition, stackFrame->code);
 			if (stackFrame->type == IfCompilerStackFrameType::IF) {
@@ -482,7 +469,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 			== CompilerStackFrameType::SYMBOL) {
 		SymbolCompilerStackFrame* stackFrame =
 				(SymbolCompilerStackFrame*) state->compilerStack->peek();
-		debug("symbol");
 
 		if (isValidSymbolChar(c)) {
 			stackFrame->symbol->add(c);
@@ -500,11 +486,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 			}
 			sym[symIndex] = NULL; // null terminated
 
-			debug("new symbol");
-			debug(sym);
-
-			debug("destructing symbol");
-			debug("frametype", (uint64) state->compilerStack->peek()->type);
 			stackFrame->symbolCallback(sym);
 			delete state->compilerStack->pop();
 
@@ -672,8 +653,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 					functions = &mish_syscalls;
 				} else {
 					// TODO regular function
-					debug("function name");
-					debug(functionName);
 					return "regular functions not implemented yet";
 				}
 
@@ -716,7 +695,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 					return "syscall not found";
 				}
 
-				debug("creating and calling back function call");
 				// create and add the function call
 				if (stackFrame->type
 						== FunctionCallCompilerStackFrameType::BYTECODE) {
