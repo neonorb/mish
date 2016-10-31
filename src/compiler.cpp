@@ -7,6 +7,7 @@
 
 #include <array.h>
 #include <compiler.h>
+#include <feta.h>
 
 #define VALID_SYMBOL_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789"
 #define WHITESPACE_CHARS " \t\n"
@@ -196,12 +197,13 @@ CompilerState::~CompilerState() {
 }
 
 static bool isValidSymbolChar(strchar c) {
-	return arrayContains<strchar>(VALID_SYMBOL_CHARS,
+	return arrayContains<strchar>((strchar*) VALID_SYMBOL_CHARS,
 			sizeof(VALID_SYMBOL_CHARS), c);
 }
 
 static bool isWhitespace(strchar c) {
-	return arrayContains<strchar>(WHITESPACE_CHARS, sizeof(WHITESPACE_CHARS), c);
+	return arrayContains<strchar>((strchar*) WHITESPACE_CHARS,
+			sizeof(WHITESPACE_CHARS), c);
 }
 
 static String processCharacter(strchar c, CompilerState* state) {
@@ -508,7 +510,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 				// begin escape
 				stackFrame->escaping = true;
 			} else if (c == '\'') {
-				stackFrame->stringCallback(charListToString(stackFrame->string));
+				stackFrame->stringCallback(
+						charListToString(stackFrame->string));
 				delete state->compilerStack->pop();
 			} else {
 				// just another character
@@ -574,6 +577,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 										[](void* stackFrame, Expression* expression) -> void* {
 											// TODO do something with expression
 											// TODO maybe expression stack frame has to have close parenthesis flag?
+											CUNUSED(stackFrame);
 											return NULL;
 										})));
 			} else if (c == ')') {
