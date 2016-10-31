@@ -121,7 +121,7 @@ static void mish() {
 	assert(flag1 == 1, "3");
 	resetFlags();
 
-	/*testMishCode("if(true){ while(false){ __triggerFlag1() } }");
+	testMishCode("if(true){ while(false){ __triggerFlag1() } }");
 	assert(flag1 == 0, "4");
 	resetFlags();
 
@@ -135,7 +135,7 @@ static void mish() {
 
 	testMishCode("while(__trueTrueFalse()){ __triggerFlag1() }");
 	assert(flag1 == 2, "7");
-	resetFlags();*/
+	resetFlags();
 
 	// ---- done tests ----
 
@@ -158,10 +158,6 @@ static void mish() {
 }
 
 void test() {
-	std::cout << (0x10c20 & 0x00FFF) << std::endl;
-	std::cout << (0x11c20 & 0x00FFF) << std::endl;
-	std::cout << (0x10b20 & 0x00FFF) << std::endl;
-
 	mish();
 }
 

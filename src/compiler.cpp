@@ -161,6 +161,7 @@ ExpressionCompilerStackFrame::ExpressionCompilerStackFrame(
 		CompilerStackFrame(CompilerStackFrameType::EXPRESSION) {
 	this->expressionCallback = expressionCallback;
 	symbol = NULL;
+	mode = ExpressionCompilerStackFrameMode::READY;
 }
 
 ExpressionCompilerStackFrame::~ExpressionCompilerStackFrame() {
@@ -196,11 +197,11 @@ CompilerState::~CompilerState() {
 
 static bool isValidSymbolChar(strchar c) {
 	return arrayContains<strchar>(VALID_SYMBOL_CHARS,
-			strlen(VALID_SYMBOL_CHARS), c);
+			sizeof(VALID_SYMBOL_CHARS), c);
 }
 
 static bool isWhitespace(strchar c) {
-	return arrayContains<strchar>(WHITESPACE_CHARS, strlen(WHITESPACE_CHARS), c);
+	return arrayContains<strchar>(WHITESPACE_CHARS, sizeof(WHITESPACE_CHARS), c);
 }
 
 static String processCharacter(strchar c, CompilerState* state) {
@@ -436,12 +437,13 @@ static String processCharacter(strchar c, CompilerState* state) {
 											return NULL;
 										})));
 				stackFrame->mode = WhileCompilerStackFrameMode::EXPECT_CP;
+				goto parseChar;
 			}
 		} else if (stackFrame->mode == WhileCompilerStackFrameMode::EXPECT_CP) {
 			if (c == ')') {
 				stackFrame->mode = WhileCompilerStackFrameMode::EXPECT_BODY;
 			} else {
-				return "expected )";
+				return "expected ) while parsing while";
 			}
 		} else if (stackFrame->mode
 				== WhileCompilerStackFrameMode::EXPECT_BODY) {
@@ -473,20 +475,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 		if (isValidSymbolChar(c)) {
 			stackFrame->symbol->add(c);
 		} else {
-			// end the symbol because this isn't a valid symbol char
-			strchar* sym = (strchar*) create(
-					stackFrame->symbol->size() * sizeof(strchar) + 1);
-
-			// copy the list of characters to an actual string
-			Iterator<strchar> symbolIterator = stackFrame->symbol->iterator();
-			uint64 symIndex = 0;
-			while (symbolIterator.hasNext()) {
-				sym[symIndex] = symbolIterator.next();
-				symIndex++;
-			}
-			sym[symIndex] = NULL; // null terminated
-
-			stackFrame->symbolCallback(sym);
+			stackFrame->symbolCallback(charListToString(stackFrame->symbol));
 			delete state->compilerStack->pop();
 
 			// we havn't done anything with this char, so we have to re-parse it
@@ -519,22 +508,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 				// begin escape
 				stackFrame->escaping = true;
 			} else if (c == '\'') {
-				// end string
-				strchar* str = (strchar*) create(
-						stackFrame->string->size() * sizeof(strchar) + 1);
-
-				// copy the list of characters to an actual string
-				Iterator<strchar> stringIterator =
-						stackFrame->string->iterator();
-				uint64 strIndex = 0;
-				while (stringIterator.hasNext()) {
-					str[strIndex] = stringIterator.next();
-					strIndex++;
-				}
-				str[strIndex] = NULL; // null terminate
-
+				stackFrame->stringCallback(charListToString(stackFrame->string));
 				delete state->compilerStack->pop();
-				stackFrame->stringCallback(str);
 			} else {
 				// just another character
 				stackFrame->string->add(c);
@@ -558,55 +533,78 @@ static String processCharacter(strchar c, CompilerState* state) {
 		ExpressionCompilerStackFrame* stackFrame =
 				(ExpressionCompilerStackFrame*) state->compilerStack->peek();
 
-		if (c == '\'') {
-			// begin string
-			state->compilerStack->push(
-					new StringCompilerStackFrame(
-							StringCallback(stackFrame,
-									[](void* stackFrame, String string) -> void* {
-										((ExpressionCompilerStackFrame*)stackFrame)->expressionCallback(new StringValue(string));
-										return NULL;
-									})));
-		} else if (isValidSymbolChar(c)) {
-			state->compilerStack->push(
-					new SymbolCompilerStackFrame(
-							StringCallback(
-									new ExpressionCompilerStackFrameStringCallbackStruct(
-											stackFrame, state),
-									[](void* stateStructArgument, String symbol) -> void* {
-										ExpressionCompilerStackFrameStringCallbackStruct* stateStruct = (ExpressionCompilerStackFrameStringCallbackStruct*) stateStructArgument;
-										if (strequ(symbol, "true")) {
-											stateStruct->stackFrame->expressionCallback(new BooleanValue(true, true));
-											delete symbol;
-										} else if (strequ(symbol, "false")) {
-											stateStruct->stackFrame->expressionCallback(new BooleanValue(false, true));
-											delete symbol;
-										} else {
-											stateStruct->stackFrame->symbol = symbol;
-										}
-										delete stateStruct->state->compilerStack->pop();
-										delete stateStruct;
-										return NULL;
-									})));
-			goto parseChar;
-		} else if (c == '(') {
-			state->compilerStack->push(
-					new ExpressionCompilerStackFrame(
-							ExpressionCallback(stackFrame,
-									[](void* stackFrame, Expression* expression) -> void* {
-										// TODO do something with expression
-										// TODO maybe expression stack frame has to have close parenthesis flag?
-										return NULL;
-									})));
-		} else if (c == ')') {
-			if (stackFrame->symbol != NULL) {
-				return "expression symbols not implemented yet";
-			}
+		if (stackFrame->mode == ExpressionCompilerStackFrameMode::READY) {
+			if (c == '\'') {
+				// begin string
+				state->compilerStack->push(
+						new StringCompilerStackFrame(
+								StringCallback(stackFrame,
+										[](void* stackFrame, String string) -> void* {
+											((ExpressionCompilerStackFrame*)stackFrame)->expressionCallback(new StringValue(string, true));
+											return NULL;
+										})));
+			} else if (isValidSymbolChar(c)) {
+				state->compilerStack->push(
+						new SymbolCompilerStackFrame(
+								StringCallback(
+										new ExpressionCompilerStackFrameStringCallbackStruct(
+												stackFrame, state),
+										[](void* stateStructArgument, String symbol) -> void* {
+											ExpressionCompilerStackFrameStringCallbackStruct* stateStruct = (ExpressionCompilerStackFrameStringCallbackStruct*) stateStructArgument;
+											if (strequ(symbol, "true")) {
+												stateStruct->stackFrame->expressionCallback(new BooleanValue(true, true));
+												delete symbol;
+											} else if (strequ(symbol, "false")) {
+												stateStruct->stackFrame->expressionCallback(new BooleanValue(false, true));
+												delete symbol;
+											} else {
+												stateStruct->stackFrame->mode = ExpressionCompilerStackFrameMode::SYMBOL;
+												stateStruct->stackFrame->symbol = symbol;
+											}
+											//delete stateStruct->state->compilerStack->pop();
+											delete stateStruct;
+											return NULL;
+										})));
+				goto parseChar;
+			} else if (c == '(') {
+				return "parenthesis in expression not implemented yet";
+				state->compilerStack->push(
+						new ExpressionCompilerStackFrame(
+								ExpressionCallback(stackFrame,
+										[](void* stackFrame, Expression* expression) -> void* {
+											// TODO do something with expression
+											// TODO maybe expression stack frame has to have close parenthesis flag?
+											return NULL;
+										})));
+			} else if (c == ')') {
+				if (stackFrame->symbol != NULL) {
+					return "expression symbols not implemented yet";
+				}
 
+				delete state->compilerStack->pop();
+				goto parseChar;
+			} else {
+				return "unexpected character while parsing expression";
+			}
+		} else if (stackFrame->mode
+				== ExpressionCompilerStackFrameMode::SYMBOL) {
+			// function
+			state->compilerStack->push(
+					new FunctionCallCompilerStackFrame(stackFrame->symbol,
+							FunctionCallExpressionCallback(stackFrame,
+									[](void* stackFrame, FunctionCallReturn* functionCallExpression) -> void* {
+										((ExpressionCompilerStackFrame*)stackFrame)->expressionCallback(functionCallExpression);
+										return NULL;
+									})));
+			stackFrame->symbol = NULL;
+			stackFrame->mode = ExpressionCompilerStackFrameMode::DONE;
+			goto parseChar;
+			// TODO variables
+		} else if (stackFrame->mode == ExpressionCompilerStackFrameMode::DONE) {
 			delete state->compilerStack->pop();
 			goto parseChar;
 		} else {
-			return "unexpected character while parsing expression";
+			crash("unknown ExpressionCompilerStackFrameMode");
 		}
 	} else if (state->compilerStack->peek()->type
 			== CompilerStackFrameType::ARGUMENT) {

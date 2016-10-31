@@ -163,6 +163,9 @@ public:
 typedef Lambda<void*, Expression*> ExpressionCallback;
 
 // ExpressionCompilerStackFrame
+enum class ExpressionCompilerStackFrameMode {
+	READY, SYMBOL, DONE
+};
 class ExpressionCompilerStackFrame: public CompilerStackFrame {
 public:
 	ExpressionCompilerStackFrame(ExpressionCallback expressionCallback);
@@ -170,6 +173,7 @@ public:
 
 	ExpressionCallback expressionCallback;
 	String symbol;
+	ExpressionCompilerStackFrameMode mode;
 };
 class ExpressionCompilerStackFrameStringCallbackStruct {
 public:
