@@ -8,7 +8,7 @@
 #include <iostream>
 #include <test.h>
 
-#ifdef ALLOW_TESTING
+#ifdef ALLOW_TEST
 
 #include <mish.h>
 

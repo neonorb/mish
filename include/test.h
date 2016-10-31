@@ -8,7 +8,7 @@
 #ifndef INCLUDE_TEST_H_
 #define INCLUDE_TEST_H_
 
-#ifdef ALLOW_TESTING
+#ifdef ALLOW_TEST
 void test();
 
 // ---- tests ----
