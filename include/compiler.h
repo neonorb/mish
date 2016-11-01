@@ -42,7 +42,7 @@ public:
 // BodyCompilerStackFrame
 typedef Lambda<void*, Code*> CodeCallback;
 enum class BodyCompilerStackFrameMode {
-	READY, EXPECT_TERMINATOR, SYMBOL
+	READY, SYMBOL
 };
 class BodyCompilerStackFrame: public CompilerStackFrame {
 public:
@@ -53,6 +53,7 @@ public:
 	String symbol;
 	Code* code;
 	CodeCallback codeCallback;
+	bool lastWasTerminated;
 };
 
 // IfCompilerStackFrame

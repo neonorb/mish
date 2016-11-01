@@ -28,6 +28,7 @@ BodyCompilerStackFrame::BodyCompilerStackFrame(CodeCallback codeCallback) :
 	symbol = NULL;
 	code = new Code();
 	this->codeCallback = codeCallback;
+	lastWasTerminated = true;
 }
 
 BodyCompilerStackFrame::~BodyCompilerStackFrame() {
@@ -60,6 +61,7 @@ IfCompilerStackFrame::IfCompilerStackFrame(IfCompilerStackFrameType type,
 		mode = IfCompilerStackFrameMode::EXPECT_P;
 	} else if (type == IfCompilerStackFrameType::ELSE) {
 		mode = IfCompilerStackFrameMode::EXPECT_BODY;
+		condition = new BooleanValue(true, true);
 	} else {
 		crash("use IfCompilerStackFrame(IfBytecodeCallback)");
 	}
@@ -207,6 +209,7 @@ static bool isWhitespace(strchar c) {
 }
 
 static String processCharacter(strchar c, CompilerState* state) {
+	// TODO process EOF
 	parseChar:
 
 	// skip any whitespace
@@ -225,26 +228,18 @@ static String processCharacter(strchar c, CompilerState* state) {
 		BodyCompilerStackFrame* stackFrame =
 				(BodyCompilerStackFrame*) state->compilerStack->peek();
 
-		if (stackFrame->mode == BodyCompilerStackFrameMode::READY
-				|| stackFrame->mode
-						== BodyCompilerStackFrameMode::EXPECT_TERMINATOR) {
-			if (c == '}') {
+		if (stackFrame->mode == BodyCompilerStackFrameMode::READY) {
+			if (c == ';' || c == '\n') {
+				stackFrame->lastWasTerminated = true;
+				return NULL;
+			} else if (isWhitespace(c)) {
+				return NULL;
+			} else if (c == '}') {
 				stackFrame->codeCallback(stackFrame->code);
 				delete state->compilerStack->pop();
 				// the statement that created this body needs to be closed, run its closing code
 				goto parseChar;
 				// TODO potential issue with closing multiple bodys...maybe
-			}
-		}
-
-		if (stackFrame->mode == BodyCompilerStackFrameMode::READY) {
-			// skip any whitespace
-			if (isWhitespace(c)) {
-				return NULL;
-			}
-
-			if (c == ';') {
-				return NULL;
 			} else if (isValidSymbolChar(c)) {
 				// begin a symbol
 				stackFrame->mode = BodyCompilerStackFrameMode::SYMBOL;
@@ -263,15 +258,6 @@ static String processCharacter(strchar c, CompilerState* state) {
 			} else {
 				return "expected character";
 			}
-		} else if (stackFrame->mode
-				== BodyCompilerStackFrameMode::EXPECT_TERMINATOR) {
-			if (c == ';' || c == '\n') {
-				stackFrame->mode = BodyCompilerStackFrameMode::READY;
-			} else if (isWhitespace(c)) {
-				return NULL;
-			} else {
-				return "expected statement terminator";
-			}
 		} else if (stackFrame->mode == BodyCompilerStackFrameMode::SYMBOL) {
 			// skip any whitespace
 			if (isWhitespace(c)) {
@@ -279,6 +265,10 @@ static String processCharacter(strchar c, CompilerState* state) {
 			}
 
 			if (strequ(stackFrame->symbol, "while")) {
+				if (!stackFrame->lastWasTerminated) {
+					return "last statement wasn't terminated";
+				}
+
 				// while
 				delete stackFrame->symbol;
 
@@ -290,6 +280,10 @@ static String processCharacter(strchar c, CompilerState* state) {
 											return VALUE_NOT_USED;
 										})));
 			} else if (strequ(stackFrame->symbol, "dowhile")) {
+				if (!stackFrame->lastWasTerminated) {
+					return "last statement wasn't terminated";
+				}
+
 				// dowhile
 				delete stackFrame->symbol;
 
@@ -301,6 +295,10 @@ static String processCharacter(strchar c, CompilerState* state) {
 											return VALUE_NOT_USED;
 										})));
 			} else if (strequ(stackFrame->symbol, "if")) {
+				if (!stackFrame->lastWasTerminated) {
+					return "last statement wasn't terminated";
+				}
+
 				// if
 				delete stackFrame->symbol;
 
@@ -317,7 +315,12 @@ static String processCharacter(strchar c, CompilerState* state) {
 
 				Bytecode* lastBytecode = stackFrame->code->bytecodes->getLast();
 
-				if (lastBytecode->type == BytecodeType::IF) {
+				if (lastBytecode != NULL
+						&& lastBytecode->type == BytecodeType::IF) {
+					if (stackFrame->lastWasTerminated) {
+						return "may not terminate an if statement before an elseif statement";
+					}
+
 					state->compilerStack->push(
 							new IfCompilerStackFrame(
 									IfCompilerStackFrameType::ELSEIF,
@@ -331,7 +334,12 @@ static String processCharacter(strchar c, CompilerState* state) {
 
 				Bytecode* lastBytecode = stackFrame->code->bytecodes->getLast();
 
-				if (lastBytecode->type == BytecodeType::IF) {
+				if (lastBytecode != NULL
+						&& lastBytecode->type == BytecodeType::IF) {
+					if (stackFrame->lastWasTerminated) {
+						return "may not terminate an if statement before and else statement";
+					}
+
 					state->compilerStack->push(
 							new IfCompilerStackFrame(
 									IfCompilerStackFrameType::ELSE,
@@ -340,6 +348,10 @@ static String processCharacter(strchar c, CompilerState* state) {
 					return "else statement may only follow an if statement";
 				}
 			} else {
+				if (!stackFrame->lastWasTerminated) {
+					return "last statement wasn't terminated";
+				}
+
 				// function
 				state->compilerStack->push(
 						new FunctionCallCompilerStackFrame(stackFrame->symbol,
@@ -350,7 +362,8 @@ static String processCharacter(strchar c, CompilerState* state) {
 										})));
 			}
 			stackFrame->symbol = NULL;
-			stackFrame->mode = BodyCompilerStackFrameMode::EXPECT_TERMINATOR;
+			stackFrame->mode = BodyCompilerStackFrameMode::READY;
+			stackFrame->lastWasTerminated = false;
 
 			goto parseChar;
 		} else {
@@ -801,9 +814,6 @@ Code* mish_compile(String sourceCode, size size) {
 		if (lineEnd == NULL) {
 			lineEnd = i;
 		}
-
-		debug("lineStart", lineStart);
-		debug("lineEnd", lineEnd);
 
 // generate the error message and display it
 		String line = substring(sourceCode, lineStart, lineEnd);
