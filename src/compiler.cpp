@@ -544,7 +544,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								StringCallback(stackFrame,
 										[](void* stackFrame, String string) -> void* {
 											((ExpressionCompilerStackFrame*)stackFrame)->expressionCallback(new StringValue(string, true));
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else if (isValidSymbolChar(c)) {
 				state->compilerStack->push(
@@ -566,7 +566,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 											}
 											//delete stateStruct->state->compilerStack->pop();
 											delete stateStruct;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 				goto parseChar;
 			} else if (c == '(') {
@@ -578,7 +578,9 @@ static String processCharacter(strchar c, CompilerState* state) {
 											// TODO do something with expression
 											// TODO maybe expression stack frame has to have close parenthesis flag?
 											CUNUSED(stackFrame);
-											return NULL;
+											CUNUSED(expression);
+											NIMPL;
+											return VALUE_NOT_USED;
 										})));
 			} else if (c == ')') {
 				if (stackFrame->symbol != NULL) {
@@ -598,7 +600,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 							FunctionCallExpressionCallback(stackFrame,
 									[](void* stackFrame, FunctionCallReturn* functionCallExpression) -> void* {
 										((ExpressionCompilerStackFrame*)stackFrame)->expressionCallback(functionCallExpression);
-										return NULL;
+										return VALUE_NOT_USED;
 									})));
 			stackFrame->symbol = NULL;
 			stackFrame->mode = ExpressionCompilerStackFrameMode::DONE;
@@ -629,7 +631,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 							ExpressionCallback(stackFrame,
 									[](void* stackFrame, Expression* expression) -> void* {
 										((ArgumentCompilerStackFrame*)stackFrame)->argumentCallback(expression);
-										return NULL;
+										return VALUE_NOT_USED;
 									})));
 			goto parseChar;
 		}
@@ -719,7 +721,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								ExpressionCallback(stackFrame,
 										[](void* stackFrame, Expression* argument) -> void* {
 											((FunctionCallCompilerStackFrame*)stackFrame)->arguments->add(argument);
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 				goto parseChar;
 			}

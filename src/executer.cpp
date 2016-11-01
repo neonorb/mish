@@ -6,6 +6,8 @@
  */
 
 #include <executer.h>
+#include <feta.h>
+#include <memory.h>
 
 // ---- state ----
 
@@ -150,11 +152,12 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				state->executionStack->push(
 						new FunctionCallStackFrame(functionCallVoid->function,
 								functionCallVoid->arguments,
-								ValueCallback(NULL,
+								ValueCallback(VALUE_NOT_USED,
 										[](void* scope, Value* response) -> void* {
+											UNUSED(scope);
 											/* discard the return value */
 											delete response;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else if (bytecode->type == BytecodeType::IF) {
 				IfBytecode* ifBytecode = (IfBytecode*) bytecode;
@@ -249,7 +252,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 									stackFrame->lastEvaluation = value;
 									value->createReference();
 
-									return NULL;
+									return VALUE_NOT_USED;
 								}));
 				stackFrame->mode = IfStackFrameMode::TEST;
 			} else {
@@ -295,7 +298,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 								stackFrame->lastEvaluation = value;
 								value->createReference();
 
-								return NULL;
+								return VALUE_NOT_USED;
 							}));
 			stackFrame->mode = WhileStackFrameMode::TEST;
 		} else if (stackFrame->mode == WhileStackFrameMode::TEST) {

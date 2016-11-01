@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <test.h>
+#include <feta.h>
 
 #ifdef ALLOW_TEST
 
@@ -20,18 +21,24 @@ static void assert(bool b, String message) {
 
 int flag1 = 0;
 static Value* triggerFlag1Function(List<Value*>* arguments) {
+	UNUSED(arguments);
+
 	flag1++;
-	return NULL;
+	return VALUE_NOT_USED;
 }
 
 int flag2 = 0;
 static Value* triggerFlag2Function(List<Value*>* arguments) {
+	UNUSED(arguments);
+
 	flag2++;
-	return NULL;
+	return VALUE_NOT_USED;
 }
 
 int trueFalseCounter = 0;
 static Value* trueFalseFunction(List<Value*>* arguments) {
+	UNUSED(arguments);
+
 	Value* ret;
 
 	if(trueFalseCounter == 1) {
@@ -47,6 +54,8 @@ static Value* trueFalseFunction(List<Value*>* arguments) {
 
 int trueTrueFalseCounter = 0;
 static Value* trueTrueFalseFunction(List<Value*>* arguments) {
+	UNUSED(arguments);
+
 	Value* ret;
 
 	if(trueTrueFalseCounter == 2) {
@@ -143,7 +152,7 @@ static void mish() {
 	uint64 laterAllocatedCount = getAllocatedCount();
 
 	// confirm no memory leaks
-	//assert(origionalAllocatedCount == laterAllocatedCount, "memory leak");
+	assert(origionalAllocatedCount == laterAllocatedCount, "memory leak");
 
 	// unregister syscalls
 	Iterator<Function*> iterator = testSyscalls.iterator();
