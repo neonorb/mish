@@ -115,22 +115,22 @@ namespace mishtest {
 		resetFlags();
 
 		testMishCode(TEST1);
-		assert(flag1 == 0, "1");
-		assert(flag2 == 1, "1-1");
+		assert(flag1 == 1, "1");
 		resetFlags();
 
+		// if
 		testMishCode(TEST2);
-		assert(flag1 == 1, "2");
+		assert(flag1 == 0, "2");
+		assert(flag2 == 1, "2-1");
 		resetFlags();
 
 		testMishCode(TEST3);
 		assert(flag1 == 1, "3");
-		assert(flag2 == 0, "3-1");
 		resetFlags();
 
 		testMishCode(TEST4);
-		assert(flag1 == 0, "4");
-		assert(flag2 == 1, "4-1");
+		assert(flag1 == 1, "4");
+		assert(flag2 == 0, "4-1");
 		resetFlags();
 
 		testMishCode(TEST5);
@@ -139,8 +139,8 @@ namespace mishtest {
 		resetFlags();
 
 		testMishCode(TEST6);
-		assert(flag1 == 1, "6");
-		assert(flag2 == 0, "6-1");
+		assert(flag1 == 0, "6");
+		assert(flag2 == 1, "6-1");
 		resetFlags();
 
 		testMishCode(TEST7);
@@ -149,36 +149,22 @@ namespace mishtest {
 		resetFlags();
 
 		testMishCode(TEST8);
-		assert(flag1 == 0, "8");
-		assert(flag2 == 1, "8-1");
+		assert(flag1 == 1, "8");
+		assert(flag2 == 0, "8-1");
 		resetFlags();
 
-		testMishCode("__triggerFlag1()");
-		assert(flag1 == 1, "1");
+		testMishCode(TEST9);
+		assert(flag1 == 0, "9");
+		assert(flag2 == 1, "9-1");
 		resetFlags();
 
-		testMishCode("if(false){ __triggerFlag1() }");
-		assert(flag1 == 0, "2");
+		// while
+		testMishCode(TEST10);
+		assert(flag1 == 1, "10");
 		resetFlags();
 
-		testMishCode("if(true){ __triggerFlag1() }");
-		assert(flag1 == 1, "3");
-		resetFlags();
-
-		testMishCode("if(true){ while(false){ __triggerFlag1() } }");
-		assert(flag1 == 0, "4");
-		resetFlags();
-
-		testMishCode("if(false){ while(true){ __triggerFlag1() } }");
-		assert(flag1 == 0, "5");
-		resetFlags();
-
-		testMishCode("while(__trueFalse()){ __triggerFlag1() }");
-		assert(flag1 == 1, "6");
-		resetFlags();
-
-		testMishCode("while(__trueTrueFalse()){ __triggerFlag1() }");
-		assert(flag1 == 2, "7");
+		testMishCode(TEST11);
+		assert(flag1 == 2, "11");
 		resetFlags();
 
 		// ---- done tests ----
