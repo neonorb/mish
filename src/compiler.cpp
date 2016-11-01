@@ -253,7 +253,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								StringCallback(stackFrame,
 										[](void* stackFrame, String symbol) -> void* {
 											((BodyCompilerStackFrame*) stackFrame)->symbol = symbol;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 				goto parseChar;
 			} else if (c == '#') {
@@ -287,7 +287,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								WhileBytecodeCallback(stackFrame,
 										[](void* stackFrame, WhileBytecode* whileBytecode) -> void* {
 											((BodyCompilerStackFrame*)stackFrame)->code->bytecodes->add(whileBytecode);
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else if (strequ(stackFrame->symbol, "dowhile")) {
 				// dowhile
@@ -298,7 +298,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								WhileBytecodeCallback(stackFrame,
 										[](void* stackFrame, WhileBytecode* whileBytecode) -> void* {
 											((BodyCompilerStackFrame*)stackFrame)->code->bytecodes->add(whileBytecode);
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else if (strequ(stackFrame->symbol, "if")) {
 				// if
@@ -309,7 +309,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								IfBytecodeCallback(stackFrame,
 										[](void* stackFrame, IfBytecode* ifBytecode) -> void* {
 											((BodyCompilerStackFrame*)stackFrame)->code->bytecodes->add(ifBytecode);
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else if (strequ(stackFrame->symbol, "elseif")) {
 				// elseif
@@ -346,7 +346,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								FunctionCallBytecodeCallback(stackFrame,
 										[](void* stackFrame, FunctionCallVoid* functionBytecode) -> void* {
 											((BodyCompilerStackFrame*)stackFrame)->code->bytecodes->add(functionBytecode);
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			}
 			stackFrame->symbol = NULL;
@@ -376,7 +376,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								ExpressionCallback(stackFrame,
 										[](void* stackFrame, Expression* condition) -> void* {
 											((IfCompilerStackFrame*)stackFrame)->condition = condition;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 				stackFrame->mode = IfCompilerStackFrameMode::EXPECT_CP;
 				goto parseChar;
@@ -395,7 +395,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								CodeCallback(stackFrame,
 										[](void* stackFrame, Code* code) -> void* {
 											((IfCompilerStackFrame*)stackFrame)->code = code;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else {
 				return "expected {";
@@ -436,7 +436,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								ExpressionCallback(stackFrame,
 										[](void* stackFrame, Expression* condition) -> void* {
 											((WhileCompilerStackFrame*)stackFrame)->condition = condition;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 				stackFrame->mode = WhileCompilerStackFrameMode::EXPECT_CP;
 				goto parseChar;
@@ -456,7 +456,7 @@ static String processCharacter(strchar c, CompilerState* state) {
 								CodeCallback(stackFrame,
 										[](void* stackFrame, Code* code) -> void* {
 											((WhileCompilerStackFrame*)stackFrame)->code = code;
-											return NULL;
+											return VALUE_NOT_USED;
 										})));
 			} else {
 				return "expected {";
