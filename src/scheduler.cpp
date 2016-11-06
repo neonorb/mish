@@ -7,6 +7,8 @@
 
 #include <scheduler.h>
 
+using namespace mish::execute;
+
 List<Thread*> mish_threads;
 
 // thread counts
@@ -15,7 +17,7 @@ uint64 mish_threadCount() {
 
 	Iterator<Thread*> threadIterator = mish_threads.iterator();
 	while (threadIterator.hasNext()) {
-			threadCount++;
+		threadCount++;
 	}
 
 	return threadCount;
@@ -55,8 +57,8 @@ void mish_runScheduler() {
 		Thread* thread = threadIterator.next();
 		bool keepGoing = true;
 		for (uint64 i = 0; i < 10 && keepGoing; i++) {
-			ExecuteStatus status = mish_execute(thread->state);
-			if (status == ExecuteStatus::DONE) {
+			Status status = mish_execute(thread->state);
+			if (status == Status::DONE) {
 				removedThreads.add(thread);
 				keepGoing = false;
 			}

@@ -74,10 +74,10 @@ namespace mishtest {
 	}
 
 	static void testMishCode(String sourceCode) {
-		Code* code = mish_compile(sourceCode);
+		Code* code = mish::compile::mish_compile(sourceCode);
 
 		if(code!=NULL) {
-			mish_execute(code);
+			mish::execute::mish_execute(code);
 			delete code;
 		}
 	}

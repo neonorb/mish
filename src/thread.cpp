@@ -10,8 +10,9 @@
 Thread::Thread(Code* code, ThreadPriority priority) {
 	this->code = code;
 
-	state = new ExecuterState();
-	state->executionStack->push(new BytecodeStackFrame(code->bytecodes));
+	state = new mish::execute::ExecuterState();
+	state->executionStack->push(
+			new mish::execute::BytecodeStackFrame(code->bytecodes));
 
 	this->priority = priority;
 

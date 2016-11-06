@@ -8,15 +8,26 @@
 #ifndef INCLUDE_EXECUTER_H_
 #define INCLUDE_EXECUTER_H_
 
+namespace mish {
+namespace execute {
+
 class ExecuterState;
+
+}
+}
 
 #include <mish.h>
 #include <stack.h>
+#include <callback.h>
 
 using namespace feta;
 
-enum class ExecuteStatus {
-	DONE, NOT_DONE
+namespace mish {
+
+namespace execute {
+
+enum class Status {
+	DONE, OK
 };
 
 // frame
@@ -37,17 +48,19 @@ public:
 	BytecodeStackFrame(List<Bytecode*>* bytecodesIterator);
 	~BytecodeStackFrame();
 
+	Status functionCallCallback(Value* ret);
+
 	Iterator<Bytecode*>* bytecodesIterator;
 };
 
 // function call
-typedef Lambda<void*, Value*> ValueCallback;
 enum class FunctionCallStackFrameMode {
 	EVALUATE, CALL, RETURN
 };
 class FunctionCallStackFrame: public ExecutionStackFrame {
 public:
-	FunctionCallStackFrame(Function* function, List<Expression*>* arguments, ValueCallback response);
+	FunctionCallStackFrame(Function* function, List<Expression*>* arguments,
+			Callback<Status(Value*)> response);
 	~FunctionCallStackFrame();
 
 	FunctionCallStackFrameMode mode;
@@ -55,7 +68,7 @@ public:
 	Function* function;
 	List<Expression*>* arguments;
 	List<Value*>* evaluations;
-	ValueCallback response;
+	Callback<Status(Value*)> response;
 };
 
 // argument
@@ -64,6 +77,8 @@ public:
 	ArgumentStackFrame(List<Expression*>* expressions,
 			List<Value*>* evaluations);
 	~ArgumentStackFrame();
+
+	Status evaluationCallback(Value* evaluation);
 
 	Iterator<Expression*>* expressionIterator;
 	List<Value*>* evaluations;
@@ -77,6 +92,8 @@ class IfStackFrame: public ExecutionStackFrame {
 public:
 	IfStackFrame(List<IfConditionCode*>* ifs);
 	~IfStackFrame();
+
+	Status conditionEvaluationCallback(Value* value);
 
 	IfStackFrameMode mode;
 
@@ -93,6 +110,8 @@ class WhileStackFrame: public ExecutionStackFrame {
 public:
 	WhileStackFrame(Expression* condition, Code* code, bool isDoWhile);
 	~WhileStackFrame();
+
+	Status conditionEvaluationCallback(Value* value);
 
 	WhileStackFrameMode mode;
 
@@ -112,6 +131,10 @@ public:
 };
 
 void mish_execute(Code* code);
-ExecuteStatus mish_execute(ExecuterState* state);
+Status mish_execute(ExecuterState* state);
+
+}
+
+}
 
 #endif /* INCLUDE_EXECUTER_H_ */

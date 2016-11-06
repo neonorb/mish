@@ -25,7 +25,7 @@ public:
 	~Thread();
 
 	Code* code;
-	ExecuterState* state;
+	mish::execute::ExecuterState* state;
 	ThreadPriority priority;
 
 	OnThreadExit onThreadExit;

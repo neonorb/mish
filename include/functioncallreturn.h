@@ -11,7 +11,6 @@
 class FunctionCallReturn;
 
 #include <bytecode.h>
-#include <lambda.h>
 #include <list.h>
 #include <expression.h>
 #include <value.h>

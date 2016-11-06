@@ -52,7 +52,7 @@ public:
 	}
 
 	inline bool operator!=(Status other) {
-		return !(other operator==(this);
+		return !other.operator==(*this);
 	}
 };
 
@@ -81,28 +81,27 @@ public:
 
 // BodyCompilerStackFrame
 enum class BodyCompilerStackFrameMode {
-	READY, SYMBOL
+	READY
 };
 class BodyCompilerStackFrame: public CompilerStackFrame {
 public:
-	BodyCompilerStackFrame(Callback<void(Code*)> callback,
+	BodyCompilerStackFrame(Callback<Status(Code*)> callback,
 			CompilerState* state);
 	~BodyCompilerStackFrame();
 
 	Status processCharacter(strchar c);
-	void addBytecode(Bytecode* bytecode);
-	void setSymbol(String symbol);
+	Status bytecodeCallback(Bytecode* bytecode);
+	Status symbolCallback(String symbol);
 
 	BodyCompilerStackFrameMode mode;
-	String symbol;
 	Code* code;
 	bool lastWasTerminated;
-	Callback<void(Code*)> codeCallback;
+	Callback<Status(Code*)> codeCallback;
 };
 
 // IfCompilerStackFrame
 enum class IfCompilerStackFrameMode {
-	EXPECT_P, EXPECT_CONDITION, EXPECT_CP, EXPECT_BODY, DONE
+	EXPECT_P, EXPECT_BODY
 };
 enum class IfCompilerStackFrameType {
 	IF, ELSEIF, ELSE
@@ -111,63 +110,62 @@ class IfCompilerStackFrame: public CompilerStackFrame {
 private:
 	IfCompilerStackFrame(IfCompilerStackFrameType type, CompilerState* state);
 public:
-	IfCompilerStackFrame(Callback<void(IfBytecode*)> ifBytecodeCallback,
+	IfCompilerStackFrame(Callback<Status(IfBytecode*)> ifBytecodeCallback,
 			CompilerState* state);
 	IfCompilerStackFrame(IfCompilerStackFrameType type, IfBytecode* ifBytecode,
 			CompilerState* state);
 	~IfCompilerStackFrame();
 
 	Status processCharacter(strchar c);
-	void setCondition(Expression* condition);
-	void setCode(Code* code);
+	Status conditionCallback(List<Expression*>* condition);
+	Status codeCallback(Code* code);
 
 	IfCompilerStackFrameMode mode;
 	IfCompilerStackFrameType type;
 	Expression* condition;
-	Code* code;
-	Callback<void(IfBytecode*)> ifBytecodeCallback;
+	Callback<Status(IfBytecode*)> ifBytecodeCallback;
 	IfBytecode* ifBytecode;
 };
 
 // WhileCompilerStackFrame
 enum class WhileCompilerStackFrameMode {
-	EXPECT_P, EXPECT_CONDITION, EXPECT_CP, EXPECT_BODY, DONE
+	EXPECT_P, EXPECT_BODY
 };
 class WhileCompilerStackFrame: public CompilerStackFrame {
 public:
 	WhileCompilerStackFrame(bool isDoWhile,
-			Callback<void(WhileBytecode*)> whileBytecodeCallback,
+			Callback<Status(WhileBytecode*)> whileBytecodeCallback,
 			CompilerState* state);
 	~WhileCompilerStackFrame();
 
 	Status processCharacter(strchar c);
-	void setCondition(Expression* condition);
-	void setCode(Code* code);
+	Status conditionCallback(List<Expression*>* condition);
+	Status codeCallback(Code* code);
 
 	WhileCompilerStackFrameMode mode;
 	bool isDoWhile;
 	Expression* condition;
 	Code* code;
-	Callback<void(WhileBytecode*)> whileBytecodeCallback;
+	Callback<Status(WhileBytecode*)> whileBytecodeCallback;
 };
 
 // SymbolCompilerStackFrame
 class SymbolCompilerStackFrame: public CompilerStackFrame {
 public:
-	SymbolCompilerStackFrame(Callback<void(String)> symbolCallback,
+	SymbolCompilerStackFrame(Callback<Status(String)> symbolCallback,
 			CompilerState* state);
 	~SymbolCompilerStackFrame();
 
 	Status processCharacter(strchar c);
 
 	List<strchar>* symbol;
-	Callback<void(String)> symbolCallback;
+	Callback<Status(String)> symbolCallback;
 };
 
 // StringCompilerStackFrame
 class StringCompilerStackFrame: public CompilerStackFrame {
 public:
-	StringCompilerStackFrame(Callback<void(String)> stringCallback,
+	StringCompilerStackFrame(Callback<Status(String)> stringCallback,
 			CompilerState* state);
 	~StringCompilerStackFrame();
 
@@ -175,7 +173,7 @@ public:
 
 	List<strchar>* string;
 	bool escaping;
-	Callback<void(String)> stringCallback;
+	Callback<Status(String)> stringCallback;
 };
 
 // CommentCompilerStackFrame
@@ -206,22 +204,21 @@ private:
 			FunctionCallCompilerStackFrameType type, CompilerState* state);
 public:
 	FunctionCallCompilerStackFrame(String name,
-			Callback<void(FunctionCallVoid*)> functionCallBytecodeCallback,
+			Callback<Status(FunctionCallVoid*)> functionCallBytecodeCallback,
 			CompilerState* state);
 	FunctionCallCompilerStackFrame(String name,
-			Callback<void(FunctionCallReturn*)> functionCallExpressionCallback,
+			Callback<Status(FunctionCallReturn*)> functionCallExpressionCallback,
 			CompilerState* state);
 	~FunctionCallCompilerStackFrame();
 
 	Status processCharacter(strchar c);
-	void argumentCallback(Expression* expression);
+	Status argumentsCallback(List<Expression*>* expression);
 
 	FunctionCallCompilerStackFrameType type;
 	String name;
-	List<Expression*>* arguments;
 	FunctionCallCompilerStackFrameMode mode;
-	Callback<void(FunctionCallVoid*)> functionCallBytecodeCallback;
-	Callback<void(FunctionCallReturn*)> functionCallExpressionCallback;
+	Callback<Status(FunctionCallVoid*)> functionCallBytecodeCallback;
+	Callback<Status(FunctionCallReturn*)> functionCallExpressionCallback;
 };
 
 // ExpressionCompilerStackFrame
@@ -230,31 +227,36 @@ enum class ExpressionCompilerStackFrameMode {
 };
 class ExpressionCompilerStackFrame: public CompilerStackFrame {
 public:
-	ExpressionCompilerStackFrame(Callback<void(Expression*)> expressionCallback,
+	ExpressionCompilerStackFrame(bool hasParenthesis,
+			Callback<Status(Expression*)> expressionCallback,
 			CompilerState* state);
 	~ExpressionCompilerStackFrame();
 
 	Status processCharacter(strchar c);
-	void symbolCallback(String symbol);
-	void stringCallback(String string);
-	void subexpressionCallback(Expression* expression);
-	void functionCallback(FunctionCallReturn* funcCall);
+	Status symbolCallback(String symbol);
+	Status stringCallback(String string);
+	Status subexpressionCallback(Expression* expression);
+	Status functionCallback(FunctionCallReturn* funcCall);
 
-	Callback<void(Expression*)> expressionCallback;
+	bool hasParenthesis;
+	Callback<Status(Expression*)> expressionCallback;
 	String symbol;
 	ExpressionCompilerStackFrameMode mode;
 };
 
-// ArgumentCompilerStackFrame
-class ArgumentCompilerStackFrame: public CompilerStackFrame {
+// ArgumentsCompilerStackFrame
+class ArgumentsCompilerStackFrame: public CompilerStackFrame {
 public:
-	ArgumentCompilerStackFrame(Callback<void(Expression*)> argumentCallback,
+	ArgumentsCompilerStackFrame(
+			Callback<Status(List<Expression*>*)> argumentsCallback,
 			CompilerState* state);
-	~ArgumentCompilerStackFrame();
+	~ArgumentsCompilerStackFrame();
 
 	Status processCharacter(strchar c);
+	Status argumentCallback(Expression* argument);
 
-	Callback<void(Expression*)> argumentCallback;
+	Callback<Status(List<Expression*>*)> argumentsCallback;
+	List<Expression*>* arguments;
 
 	bool requireArgument;
 };

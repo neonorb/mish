@@ -9,6 +9,10 @@
 #include <feta.h>
 #include <memory.h>
 
+namespace mish {
+
+namespace execute {
+
 // ---- state ----
 
 // ExecutionStackFrame
@@ -30,9 +34,15 @@ BytecodeStackFrame::~BytecodeStackFrame() {
 	delete bytecodesIterator;
 }
 
+Status BytecodeStackFrame::functionCallCallback(Value* ret) {
+	/* discard the return value */
+	delete ret;
+	return Status::OK;
+}
+
 // FunctionCallStackFrame
 FunctionCallStackFrame::FunctionCallStackFrame(Function* function,
-		List<Expression*>* arguments, ValueCallback response) :
+		List<Expression*>* arguments, Callback<Status(Value*)> response) :
 		ExecutionStackFrame(ExecutionStackFrameType::FUNCTION_CALL) {
 	mode = FunctionCallStackFrameMode::EVALUATE;
 
@@ -64,6 +74,12 @@ ArgumentStackFrame::~ArgumentStackFrame() {
 	delete expressionIterator;
 }
 
+Status ArgumentStackFrame::evaluationCallback(Value* evaluation) {
+	evaluation->createReference();
+	evaluations->add(evaluation);
+	return Status::OK;
+}
+
 // IfStackFrame
 IfStackFrame::IfStackFrame(List<IfConditionCode*>* ifs) :
 		ExecutionStackFrame(ExecutionStackFrameType::IF) {
@@ -80,6 +96,19 @@ IfStackFrame::~IfStackFrame() {
 	if (lastEvaluation != NULL) {
 		lastEvaluation->deleteReference();
 	}
+}
+
+Status IfStackFrame::conditionEvaluationCallback(Value* value) {
+	// delete old value
+	if (lastEvaluation != NULL) {
+		lastEvaluation->deleteReference();
+	}
+
+	// set new value
+	lastEvaluation = value;
+	value->createReference();
+
+	return Status::OK;
 }
 
 // WhileStackFrame
@@ -104,6 +133,19 @@ WhileStackFrame::~WhileStackFrame() {
 	}
 }
 
+Status WhileStackFrame::conditionEvaluationCallback(Value* value) {
+	// delete old value
+	if (lastEvaluation != NULL) {
+		lastEvaluation->deleteReference();
+	}
+
+	// set new value
+	lastEvaluation = value;
+	value->createReference();
+
+	return Status::OK;
+}
+
 // ExecuterState
 ExecuterState::ExecuterState() {
 	executionStack = new Stack<ExecutionStackFrame*>();
@@ -119,7 +161,7 @@ ExecuterState::~ExecuterState() {
 // ---- execution ----
 
 static void evaluateExpression(Expression* expression, ExecuterState* state,
-		ValueCallback response) {
+		Callback<Status(Value*)> response) {
 	switch (expression->expressionType) {
 	case VALUE_EXPRESSION: {
 		Value* constant = (Value*) expression;
@@ -138,7 +180,7 @@ static void evaluateExpression(Expression* expression, ExecuterState* state,
 	}
 }
 
-ExecuteStatus mish_execute(ExecuterState* state) {
+Status mish_execute(ExecuterState* state) {
 	if (state->executionStack->peek()->type
 			== ExecutionStackFrameType::BYTECODE) {
 		BytecodeStackFrame* stackFrame =
@@ -152,13 +194,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				state->executionStack->push(
 						new FunctionCallStackFrame(functionCallVoid->function,
 								functionCallVoid->arguments,
-								ValueCallback(VALUE_NOT_USED,
-										[](void* scope, Value* response) -> void* {
-											UNUSED(scope);
-											/* discard the return value */
-											delete response;
-											return VALUE_NOT_USED;
-										})));
+								BIND_MEM_CB(&BytecodeStackFrame::functionCallCallback, stackFrame)));
 			} else if (bytecode->type == BytecodeType::IF) {
 				IfBytecode* ifBytecode = (IfBytecode*) bytecode;
 				state->executionStack->push(new IfStackFrame(ifBytecode->ifs));
@@ -176,7 +212,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			// TODO end of function... if non-void function, crash system, if void function, then return
 			// for now, just end the execution
 			if (state->executionStack->size() == 0) {
-				return ExecuteStatus::DONE;
+				return Status::DONE;
 			}
 		}
 	} else if (state->executionStack->peek()->type
@@ -207,7 +243,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				// TODO evaluate and call function
 				// TODO remember to create return reference
 				crash("regular functions not implemented yet");
-				return ExecuteStatus::NOT_DONE;		// don't delete evaluations
+				return Status::OK;		// don't delete evaluations
 			}
 		} else if (stackFrame->mode == FunctionCallStackFrameMode::RETURN) {
 			delete state->executionStack->pop();
@@ -221,12 +257,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 		if (stackFrame->expressionIterator->hasNext()) {
 			Expression* expression = stackFrame->expressionIterator->next();
 			evaluateExpression(expression, state,
-					ValueCallback(stackFrame,
-							[](void* stackFrame, Value* value) -> void* {
-								value->createReference();
-								((ArgumentStackFrame*) stackFrame)->evaluations->add(value);
-								return NULL;
-							}));
+			BIND_MEM_CB(&ArgumentStackFrame::evaluationCallback, stackFrame));
 		} else {
 			// out of evaluations
 			delete state->executionStack->pop();
@@ -239,21 +270,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 			if (stackFrame->ifsIterator->hasNext()) {
 				evaluateExpression(
 						stackFrame->ifsIterator->peekNext()->condition, state,
-						ValueCallback(stackFrame,
-								[](void* stackFrameArgument, Value* value) -> void* {
-									IfStackFrame* stackFrame = (IfStackFrame*) stackFrameArgument;
-
-									// delete old value
-									if(stackFrame->lastEvaluation!= NULL) {
-										stackFrame->lastEvaluation->deleteReference();
-									}
-
-									// set new value
-									stackFrame->lastEvaluation = value;
-									value->createReference();
-
-									return VALUE_NOT_USED;
-								}));
+						BIND_MEM_CB(&IfStackFrame::conditionEvaluationCallback, stackFrame));
 				stackFrame->mode = IfStackFrameMode::TEST;
 			} else {
 				delete state->executionStack->pop();
@@ -285,21 +302,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 				(WhileStackFrame*) state->executionStack->peek();
 		if (stackFrame->mode == WhileStackFrameMode::EVALUATE) {
 			evaluateExpression(stackFrame->condition, state,
-					ValueCallback(stackFrame,
-							[](void* stackFrameArgument, Value* value) -> void* {
-								WhileStackFrame* stackFrame = (WhileStackFrame*) stackFrameArgument;
-
-								// delete old value
-								if(stackFrame->lastEvaluation!= NULL) {
-									stackFrame->lastEvaluation->deleteReference();
-								}
-
-								// set new value
-								stackFrame->lastEvaluation = value;
-								value->createReference();
-
-								return VALUE_NOT_USED;
-							}));
+					BIND_MEM_CB(&WhileStackFrame::conditionEvaluationCallback, stackFrame));
 			stackFrame->mode = WhileStackFrameMode::TEST;
 		} else if (stackFrame->mode == WhileStackFrameMode::TEST) {
 			if (((BooleanValue*) stackFrame->lastEvaluation)->value) {
@@ -319,7 +322,7 @@ ExecuteStatus mish_execute(ExecuterState* state) {
 		crash("unknown execution mode");
 	}
 
-	return ExecuteStatus::NOT_DONE;
+	return Status::OK;
 }
 
 void mish_execute(Code* code) {
@@ -330,11 +333,15 @@ void mish_execute(Code* code) {
 	state->executionStack->push(new BytecodeStackFrame(code->bytecodes));
 
 	while (true) {
-		ExecuteStatus status = mish_execute(state);
-		if (status == ExecuteStatus::DONE) {
+		Status status = mish_execute(state);
+		if (status == Status::DONE) {
 			break;
 		}
 	}
 
 	delete state;
+}
+
+}
+
 }
