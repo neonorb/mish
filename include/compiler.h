@@ -13,11 +13,48 @@
 #include <stack.h>
 #include <int.h>
 #include <string.h>
-#include <lambda.h>
+#include <callback.h>
 
 using namespace feta;
 
+namespace mish {
+
+namespace compile {
+
 class CompilerState;
+
+class Status {
+	enum class Type {
+		OK, ERROR, WARNING, REPROCESS
+	};
+	Status(Type type);
+	Status(Type type, String message);
+public:
+	static const Status OK;
+	static const Status REPROCESS;
+
+	static Status ERROR(String message) {
+		return Status(Type::ERROR, message);
+	}
+	static Status WARNING(String message) {
+		return Status(Type::WARNING, message);
+	}
+
+	Type type;
+	String message;
+
+	inline bool operator==(Status other) {
+		if (type == other.type) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	inline bool operator!=(Status other) {
+		return !(other operator==(this);
+	}
+};
 
 // CompilerStackFrame
 enum class CompilerStackFrameType {
@@ -33,31 +70,37 @@ enum class CompilerStackFrameType {
 };
 class CompilerStackFrame {
 public:
-	CompilerStackFrame(CompilerStackFrameType type);
+	CompilerStackFrame(CompilerStackFrameType type, CompilerState* state);
 	virtual ~CompilerStackFrame();
 
+	virtual Status processCharacter(strchar c);
+
 	CompilerStackFrameType type;
+	CompilerState* state;
 };
 
 // BodyCompilerStackFrame
-typedef Lambda<void*, Code*> CodeCallback;
 enum class BodyCompilerStackFrameMode {
 	READY, SYMBOL
 };
 class BodyCompilerStackFrame: public CompilerStackFrame {
 public:
-	BodyCompilerStackFrame(CodeCallback codeCallback);
+	BodyCompilerStackFrame(Callback<void(Code*)> callback,
+			CompilerState* state);
 	~BodyCompilerStackFrame();
+
+	Status processCharacter(strchar c);
+	void addBytecode(Bytecode* bytecode);
+	void setSymbol(String symbol);
 
 	BodyCompilerStackFrameMode mode;
 	String symbol;
 	Code* code;
-	CodeCallback codeCallback;
 	bool lastWasTerminated;
+	Callback<void(Code*)> codeCallback;
 };
 
 // IfCompilerStackFrame
-typedef Lambda<void*, IfBytecode*> IfBytecodeCallback;
 enum class IfCompilerStackFrameMode {
 	EXPECT_P, EXPECT_CONDITION, EXPECT_CP, EXPECT_BODY, DONE
 };
@@ -66,59 +109,73 @@ enum class IfCompilerStackFrameType {
 };
 class IfCompilerStackFrame: public CompilerStackFrame {
 private:
-	IfCompilerStackFrame(IfCompilerStackFrameType type);
+	IfCompilerStackFrame(IfCompilerStackFrameType type, CompilerState* state);
 public:
-	IfCompilerStackFrame(IfBytecodeCallback ifBytecodeCallback);
-	IfCompilerStackFrame(IfCompilerStackFrameType type, IfBytecode* ifBytecode);
+	IfCompilerStackFrame(Callback<void(IfBytecode*)> ifBytecodeCallback,
+			CompilerState* state);
+	IfCompilerStackFrame(IfCompilerStackFrameType type, IfBytecode* ifBytecode,
+			CompilerState* state);
 	~IfCompilerStackFrame();
+
+	Status processCharacter(strchar c);
+	void setCondition(Expression* condition);
+	void setCode(Code* code);
 
 	IfCompilerStackFrameMode mode;
 	IfCompilerStackFrameType type;
 	Expression* condition;
 	Code* code;
-	IfBytecodeCallback ifBytecodeCallback;
+	Callback<void(IfBytecode*)> ifBytecodeCallback;
 	IfBytecode* ifBytecode;
 };
 
 // WhileCompilerStackFrame
-typedef Lambda<void*, WhileBytecode*> WhileBytecodeCallback;
 enum class WhileCompilerStackFrameMode {
 	EXPECT_P, EXPECT_CONDITION, EXPECT_CP, EXPECT_BODY, DONE
 };
 class WhileCompilerStackFrame: public CompilerStackFrame {
 public:
 	WhileCompilerStackFrame(bool isDoWhile,
-			WhileBytecodeCallback whileBytecodeCallback);
+			Callback<void(WhileBytecode*)> whileBytecodeCallback,
+			CompilerState* state);
 	~WhileCompilerStackFrame();
+
+	Status processCharacter(strchar c);
+	void setCondition(Expression* condition);
+	void setCode(Code* code);
 
 	WhileCompilerStackFrameMode mode;
 	bool isDoWhile;
 	Expression* condition;
 	Code* code;
-	WhileBytecodeCallback whileBytecodeCallback;
+	Callback<void(WhileBytecode*)> whileBytecodeCallback;
 };
-
-typedef Lambda<void*, String> StringCallback;
 
 // SymbolCompilerStackFrame
 class SymbolCompilerStackFrame: public CompilerStackFrame {
 public:
-	SymbolCompilerStackFrame(StringCallback symbolCallback);
+	SymbolCompilerStackFrame(Callback<void(String)> symbolCallback,
+			CompilerState* state);
 	~SymbolCompilerStackFrame();
 
+	Status processCharacter(strchar c);
+
 	List<strchar>* symbol;
-	StringCallback symbolCallback;
+	Callback<void(String)> symbolCallback;
 };
 
 // StringCompilerStackFrame
 class StringCompilerStackFrame: public CompilerStackFrame {
 public:
-	StringCompilerStackFrame(StringCallback stringCallback);
+	StringCompilerStackFrame(Callback<void(String)> stringCallback,
+			CompilerState* state);
 	~StringCompilerStackFrame();
+
+	Status processCharacter(strchar c);
 
 	List<strchar>* string;
 	bool escaping;
-	StringCallback stringCallback;
+	Callback<void(String)> stringCallback;
 };
 
 // CommentCompilerStackFrame
@@ -127,8 +184,11 @@ enum class CommentCompilerStackFrameType {
 };
 class CommentCompilerStackFrame: public CompilerStackFrame {
 public:
-	CommentCompilerStackFrame(CommentCompilerStackFrameType type);
+	CommentCompilerStackFrame(CommentCompilerStackFrameType type,
+			CompilerState* state);
 	~CommentCompilerStackFrame();
+
+	Status processCharacter(strchar c);
 
 	CommentCompilerStackFrameType type;
 };
@@ -140,28 +200,29 @@ enum class FunctionCallCompilerStackFrameMode {
 enum class FunctionCallCompilerStackFrameType {
 	BYTECODE, EXPRESSION
 };
-typedef Lambda<void*, FunctionCallVoid*> FunctionCallBytecodeCallback;
-typedef Lambda<void*, FunctionCallReturn*> FunctionCallExpressionCallback;
 class FunctionCallCompilerStackFrame: public CompilerStackFrame {
 private:
 	FunctionCallCompilerStackFrame(String name,
-			FunctionCallCompilerStackFrameType type);
+			FunctionCallCompilerStackFrameType type, CompilerState* state);
 public:
 	FunctionCallCompilerStackFrame(String name,
-			FunctionCallBytecodeCallback functionCallBytecodeCallback);
+			Callback<void(FunctionCallVoid*)> functionCallBytecodeCallback,
+			CompilerState* state);
 	FunctionCallCompilerStackFrame(String name,
-			FunctionCallExpressionCallback functionCallExpressionCallback);
+			Callback<void(FunctionCallReturn*)> functionCallExpressionCallback,
+			CompilerState* state);
 	~FunctionCallCompilerStackFrame();
+
+	Status processCharacter(strchar c);
+	void argumentCallback(Expression* expression);
 
 	FunctionCallCompilerStackFrameType type;
 	String name;
 	List<Expression*>* arguments;
 	FunctionCallCompilerStackFrameMode mode;
-	FunctionCallBytecodeCallback functionCallBytecodeCallback;
-	FunctionCallExpressionCallback functionCallExpressionCallback;
+	Callback<void(FunctionCallVoid*)> functionCallBytecodeCallback;
+	Callback<void(FunctionCallReturn*)> functionCallExpressionCallback;
 };
-
-typedef Lambda<void*, Expression*> ExpressionCallback;
 
 // ExpressionCompilerStackFrame
 enum class ExpressionCompilerStackFrameMode {
@@ -169,27 +230,31 @@ enum class ExpressionCompilerStackFrameMode {
 };
 class ExpressionCompilerStackFrame: public CompilerStackFrame {
 public:
-	ExpressionCompilerStackFrame(ExpressionCallback expressionCallback);
+	ExpressionCompilerStackFrame(Callback<void(Expression*)> expressionCallback,
+			CompilerState* state);
 	~ExpressionCompilerStackFrame();
 
-	ExpressionCallback expressionCallback;
+	Status processCharacter(strchar c);
+	void symbolCallback(String symbol);
+	void stringCallback(String string);
+	void subexpressionCallback(Expression* expression);
+	void functionCallback(FunctionCallReturn* funcCall);
+
+	Callback<void(Expression*)> expressionCallback;
 	String symbol;
 	ExpressionCompilerStackFrameMode mode;
-};
-class ExpressionCompilerStackFrameStringCallbackStruct {
-public:
-	ExpressionCompilerStackFrameStringCallbackStruct(ExpressionCompilerStackFrame* stackFrame, CompilerState* state);
-	ExpressionCompilerStackFrame* stackFrame;
-	CompilerState* state;
 };
 
 // ArgumentCompilerStackFrame
 class ArgumentCompilerStackFrame: public CompilerStackFrame {
 public:
-	ArgumentCompilerStackFrame(ExpressionCallback argumentCallback);
+	ArgumentCompilerStackFrame(Callback<void(Expression*)> argumentCallback,
+			CompilerState* state);
 	~ArgumentCompilerStackFrame();
 
-	ExpressionCallback argumentCallback;
+	Status processCharacter(strchar c);
+
+	Callback<void(Expression*)> argumentCallback;
 
 	bool requireArgument;
 };
@@ -204,5 +269,9 @@ public:
 
 Code* mish_compile(String code);
 Code* mish_compile(String start, feta::size size);
+
+}
+
+}
 
 #endif /* INCLUDE_COMPILER_H_ */

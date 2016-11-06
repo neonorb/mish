@@ -167,6 +167,18 @@ namespace mishtest {
 		assert(flag1 == 2, "11");
 		resetFlags();
 
+		testMishCode(TEST12);
+		assert(flag1 == 0, "12");
+		resetFlags();
+
+		testMishCode(TEST13);
+		assert(flag1 == 1, "13");
+		resetFlags();
+
+		testMishCode(TEST14);
+		assert(flag1 == 2, "14");
+		resetFlags();
+
 		// ---- done tests ----
 
 		// get allocated count

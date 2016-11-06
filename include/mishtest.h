@@ -91,6 +91,21 @@ __triggerFlag2()"
 	__triggerFlag1()\n\
 }"
 
+#define TEST12 \
+"while (false) {\n\
+	__triggerFlag1()\n\
+}"
+
+#define TEST13 \
+"dowhile (false) {\n\
+	__triggerFlag1()\n\
+}"
+
+#define TEST14 \
+"dowhile (__trueFalse()) {\n\
+	__triggerFlag1()\n\
+}"
+
 // ---- end tests ----
 
 }
