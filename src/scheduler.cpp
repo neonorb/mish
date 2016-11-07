@@ -57,7 +57,7 @@ void mish_runScheduler() {
 		Thread* thread = threadIterator.next();
 		bool keepGoing = true;
 		for (uint64 i = 0; i < 10 && keepGoing; i++) {
-			Status status = mish_execute(thread->state);
+			Status status = execute(thread->state);
 			if (status == Status::DONE) {
 				removedThreads.add(thread);
 				keepGoing = false;

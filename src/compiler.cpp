@@ -680,11 +680,11 @@ CompilerState::~CompilerState() {
 	delete compilerStack;
 }
 
-Code* mish_compile(String code) {
-	return mish_compile(code, strlen(code));
+Code* compile(String code) {
+	return compile(code, strlen(code));
 }
 
-Code* mish_compile(String sourceCode, size size) {
+Code* compile(String sourceCode, size size) {
 	CompilerState* state = new CompilerState();
 	BodyCompilerStackFrame* firstFrame = new BodyCompilerStackFrame( { });
 	firstFrame->state = state;

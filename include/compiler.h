@@ -271,8 +271,8 @@ Status CompilerStackFrame::callbackAndEndFrame(
 	return Status::OK;
 }
 
-Code* mish_compile(String code);
-Code* mish_compile(String start, feta::size size);
+Code* compile(String code);
+Code* compile(String start, feta::size size);
 
 }
 

@@ -147,8 +147,8 @@ public:
 	Stack<ExecutionStackFrame*>* executionStack;
 };
 
-void mish_execute(Code* code);
-Status mish_execute(ExecuterState* state);
+void execute(Code* code);
+Status execute(ExecuterState* state);
 
 }
 

@@ -329,11 +329,11 @@ ExecuterState::~ExecuterState() {
 
 // ---- execution ----
 
-Status mish_execute(ExecuterState* state) {
+Status execute(ExecuterState* state) {
 	return state->executionStack->peek()->execute();
 }
 
-void mish_execute(Code* code) {
+void execute(Code* code) {
 	ExecuterState* state = new ExecuterState();
 
 	// start executing on first bytecode
@@ -343,7 +343,7 @@ void mish_execute(Code* code) {
 	state->executionStack->push(firstFrame);
 
 	while (true) {
-		Status status = mish_execute(state);
+		Status status = execute(state);
 		if (status == Status::DONE) {
 			break;
 		}
