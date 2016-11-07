@@ -7,25 +7,20 @@
 
 #include <scheduler.h>
 
-using namespace mish::execute;
+namespace mish {
+namespace execute {
+namespace schedule {
 
-List<Thread*> mish_threads;
+List<Thread*> threads;
 
 // thread counts
-uint64 mish_threadCount() {
-	uint64 threadCount = 0;
-
-	Iterator<Thread*> threadIterator = mish_threads.iterator();
-	while (threadIterator.hasNext()) {
-		threadCount++;
-	}
-
-	return threadCount;
+uint64 threadCount() {
+	return threads.size();
 }
-uint64 mish_activeThreadCount() {
+uint64 activeThreadCount() {
 	uint64 activeThreadCount = 0;
 
-	Iterator<Thread*> threadIterator = mish_threads.iterator();
+	Iterator<Thread*> threadIterator = threads.iterator();
 	while (threadIterator.hasNext()) {
 		if (threadIterator.next()->priority == ACTIVE) {
 			activeThreadCount++;
@@ -34,10 +29,10 @@ uint64 mish_activeThreadCount() {
 
 	return activeThreadCount;
 }
-uint64 mish_backgroundThreadCount() {
+uint64 backgroundThreadCount() {
 	uint64 backgroundThreadCount = 0;
 
-	Iterator<Thread*> threadIterator = mish_threads.iterator();
+	Iterator<Thread*> threadIterator = threads.iterator();
 	while (threadIterator.hasNext()) {
 		if (threadIterator.next()->priority == BACKGROUND) {
 			backgroundThreadCount++;
@@ -49,10 +44,10 @@ uint64 mish_backgroundThreadCount() {
 
 // scheduler
 
-void mish_runScheduler() {
+void run() {
 	List<Thread*> removedThreads;
 
-	Iterator<Thread*> threadIterator = mish_threads.iterator();
+	Iterator<Thread*> threadIterator = threads.iterator();
 	while (threadIterator.hasNext()) {
 		Thread* thread = threadIterator.next();
 		bool keepGoing = true;
@@ -67,20 +62,24 @@ void mish_runScheduler() {
 
 	Iterator<Thread*> removedThreadsIterator = removedThreads.iterator();
 	while (removedThreadsIterator.hasNext()) {
-		mish_killThread(removedThreadsIterator.next());
+		kill(removedThreadsIterator.next());
 	}
 }
 
-void mish_killThread(Thread* thread) {
+void kill(Thread* thread) {
 	if (thread->onThreadExit != NULL) {
 		thread->onThreadExit(thread);
 	}
 
-	mish_threads.remove(thread);
+	threads.remove(thread);
 	delete thread;
 }
 
-void mish_spawnThread(Thread* thread) {
-	mish_threads.add(thread);
+void spawn(Thread* thread) {
+	threads.add(thread);
+}
+
+}
+}
 }
 

@@ -11,12 +11,21 @@
 #include <mish.h>
 #include <thread.h>
 
-uint64 mish_threadCount();
-uint64 mish_activeThreadCount();
-uint64 mish_backgroundThreadCount();
+namespace mish {
+namespace execute {
+namespace schedule {
 
-void mish_runScheduler();
-void mish_killThread(Thread* thread);
-void mish_spawnThread(Thread* thread);
+uint64 threadCount();
+uint64 activeThreadCount();
+uint64 backgroundThreadCount();
+
+void run();
+void kill(Thread* thread);
+void spawn(Thread* thread);
+
+}
+}
+}
+
 
 #endif /* INCLUDE_SCHEDULER_H_ */
