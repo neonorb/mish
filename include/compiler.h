@@ -145,7 +145,6 @@ public:
 	WhileCompilerStackFrameMode mode;
 	bool isDoWhile;
 	Expression* condition;
-	Code* code;
 	Callback<Status(WhileBytecode*)> whileBytecodeCallback;
 };
 
@@ -223,7 +222,7 @@ public:
 
 // ExpressionCompilerStackFrame
 enum class ExpressionCompilerStackFrameMode {
-	READY, SYMBOL, DONE
+	READY
 };
 class ExpressionCompilerStackFrame: public CompilerStackFrame {
 public:
@@ -240,7 +239,6 @@ public:
 
 	bool hasParenthesis;
 	Callback<Status(Expression*)> expressionCallback;
-	String symbol;
 	ExpressionCompilerStackFrameMode mode;
 };
 

@@ -39,6 +39,20 @@ static bool isWhitespace(strchar c) {
 			sizeof(WHITESPACE_CHARS), c);
 }
 
+template<typename ... Args>
+static Status callbackAndEndFrame(Callback<Status(Args...)> callback,
+		CompilerState* state, Args ... args) {
+	CompilerStackFrame* stackFrame = state->compilerStack->pop();
+	callback(args...);
+	delete stackFrame;
+	return Status::OK;
+}
+
+static Status endFrame(CompilerState* state) {
+	delete state->compilerStack->pop();
+	return Status::OK;
+}
+
 // CompilerStackFrame
 CompilerStackFrame::CompilerStackFrame(CompilerStackFrameType type,
 		CompilerState* state) {
@@ -78,8 +92,7 @@ Status BodyCompilerStackFrame::processCharacter(strchar c) {
 		} else if (isWhitespace(c)) {
 			return Status::OK;
 		} else if (c == '}') {
-			delete state->compilerStack->pop();
-			return codeCallback(code);
+			return callbackAndEndFrame(codeCallback, state, code);
 		} else if (isValidSymbolChar(c)) {
 			// begin a symbol
 			state->compilerStack->push(new SymbolCompilerStackFrame(
@@ -259,19 +272,20 @@ Status IfCompilerStackFrame::processCharacter(strchar c) {
 
 Status IfCompilerStackFrame::conditionCallback(List<Expression*>* condition) {
 	if (condition->size() != 1) {
+		delete condition;
 		return Status::ERROR("if expects one argument");
 	} else {
 		this->condition = condition->get(0);
+		delete condition;
 		return Status::OK;
 	}
 }
 
 Status IfCompilerStackFrame::codeCallback(Code* code) {
-	delete state->compilerStack->pop();
-
 	IfConditionCode* ifConditionCode = new IfConditionCode(condition, code);
 	if (type == IfCompilerStackFrameType::IF) {
-		return ifBytecodeCallback(new IfBytecode(ifConditionCode));
+		return callbackAndEndFrame(ifBytecodeCallback, state,
+				new IfBytecode(ifConditionCode));
 	} else if (type == IfCompilerStackFrameType::ELSEIF
 			|| type == IfCompilerStackFrameType::ELSE) {
 		ifBytecode->ifs->add(ifConditionCode);
@@ -279,7 +293,7 @@ Status IfCompilerStackFrame::codeCallback(Code* code) {
 		crash("unknown IfCompilerStackFrameType");
 	}
 
-	return Status::OK;
+	return endFrame(state);
 }
 
 // WhileCompilerStackFrame
@@ -292,7 +306,6 @@ WhileCompilerStackFrame::WhileCompilerStackFrame(bool isDoWhile,
 	this->whileBytecodeCallback = whileBytecodeCallback;
 
 	condition = NULL;
-	code = NULL;
 }
 
 WhileCompilerStackFrame::~WhileCompilerStackFrame() {
@@ -327,17 +340,18 @@ Status WhileCompilerStackFrame::processCharacter(strchar c) {
 Status WhileCompilerStackFrame::conditionCallback(
 		List<Expression*>* condition) {
 	if (condition->size() != 1) {
+		delete condition;
 		return Status::ERROR("while expects one argument");
 	} else {
 		this->condition = condition->get(0);
+		delete condition;
 		return Status::OK;
 	}
 }
 
 Status WhileCompilerStackFrame::codeCallback(Code* code) {
-	this->code = code;
-	delete state->compilerStack->pop();
-	return whileBytecodeCallback(new WhileBytecode(condition, code, isDoWhile));
+	return callbackAndEndFrame(whileBytecodeCallback, state,
+			new WhileBytecode(condition, code, isDoWhile));
 }
 
 // SymbolCompilerStackFrame
@@ -356,11 +370,15 @@ Status SymbolCompilerStackFrame::processCharacter(strchar c) {
 	if (isValidSymbolChar(c)) {
 		symbol->add(c);
 	} else {
-		delete state->compilerStack->pop();
-		return symbolCallback(charListToString(symbol));
+		Status status = callbackAndEndFrame(symbolCallback, state,
+				charListToString(symbol));
 
-		// we havn't done anything with this char, so we have to re-parse it
-		return Status::REPROCESS;
+		if (status != Status::OK) {
+			return status;
+		} else {
+			// we havn't done anything with this char, so we have to re-parse it
+			return Status::REPROCESS;
+		}
 	}
 
 	return Status::OK;
@@ -404,8 +422,8 @@ Status StringCompilerStackFrame::processCharacter(strchar c) {
 			// begin escape
 			escaping = true;
 		} else if (c == '\'') {
-			delete state->compilerStack->pop();
-			return stringCallback(charListToString(string));
+			return callbackAndEndFrame(stringCallback, state,
+					charListToString(string));
 		} else if (c == EOF) {
 			return Status::ERROR("unexpected EOF");
 		} else {
@@ -431,7 +449,7 @@ CommentCompilerStackFrame::~CommentCompilerStackFrame() {
 Status CommentCompilerStackFrame::processCharacter(strchar c) {
 	if (type == CommentCompilerStackFrameType::LINE) {
 		if (c == '\n') {
-			delete state->compilerStack->pop();
+			endFrame(state);
 		}
 		// ignore character
 	} else {
@@ -531,20 +549,17 @@ Status FunctionCallCompilerStackFrame::argumentsCallback(
 			continueFunctionSearch: continue;
 		}
 	}
-	//delete functionName;
 
 	if (!found) {
 		return Status::ERROR("syscall not found");
 	}
 
-	delete state->compilerStack->pop();
-
 	// create and add the function call
 	if (type == FunctionCallCompilerStackFrameType::BYTECODE) {
-		return functionCallBytecodeCallback(
+		return callbackAndEndFrame(functionCallBytecodeCallback, state,
 				new FunctionCallVoid(function, arguments));
 	} else if (type == FunctionCallCompilerStackFrameType::EXPRESSION) {
-		return functionCallExpressionCallback(
+		return callbackAndEndFrame(functionCallExpressionCallback, state,
 				new FunctionCallReturn(function, arguments));
 	} else {
 		crash("unknown FunctionCallCompilerStackFrameType");
@@ -558,14 +573,11 @@ ExpressionCompilerStackFrame::ExpressionCompilerStackFrame(bool hasParenthesis,
 		CompilerStackFrame(CompilerStackFrameType::EXPRESSION, state) {
 	this->hasParenthesis = hasParenthesis;
 	this->expressionCallback = expressionCallback;
-	symbol = NULL;
 	mode = ExpressionCompilerStackFrameMode::READY;
 }
 
 ExpressionCompilerStackFrame::~ExpressionCompilerStackFrame() {
-	if (symbol != NULL) {
-		delete symbol;
-	}
+
 }
 
 Status ExpressionCompilerStackFrame::processCharacter(strchar c) {
@@ -589,28 +601,17 @@ Status ExpressionCompilerStackFrame::processCharacter(strchar c) {
 					new ExpressionCompilerStackFrame(true,
 							BIND_MEM_CB(&ExpressionCompilerStackFrame::subexpressionCallback, this),
 							state));
-		} else if (c == ')') {
-			if (symbol != NULL) {
-				return Status::ERROR("expression symbols not implemented yet");
-			}
-
-			delete state->compilerStack->pop();
-			if (!hasParenthesis) {
-				return Status::REPROCESS;
-			}
 		} else {
-			return Status::ERROR(
-					"unexpected character while parsing expression");
+			if (c == ')') {
+				endFrame(state);
+				if (!hasParenthesis) {
+					return Status::REPROCESS;
+				}
+			} else {
+				return Status::ERROR(
+						"unexpected character while parsing expression");
+			}
 		}
-	} else if (mode == ExpressionCompilerStackFrameMode::SYMBOL) {
-		// function
-		state->compilerStack->push(
-				new FunctionCallCompilerStackFrame(symbol,
-						BIND_MEM_CB(&ExpressionCompilerStackFrame::functionCallback, this),
-						state));
-		symbol = NULL;
-		return Status::REPROCESS;
-		// TODO variables
 	} else {
 		crash("unknown ExpressionCompilerStackFrameMode");
 	}
@@ -619,21 +620,26 @@ Status ExpressionCompilerStackFrame::processCharacter(strchar c) {
 }
 
 Status ExpressionCompilerStackFrame::stringCallback(String string) {
-	return expressionCallback(new StringValue(string, true));
+	return callbackAndEndFrame(expressionCallback, state,
+			(Expression*) new StringValue(string, true));
 }
 
 Status ExpressionCompilerStackFrame::symbolCallback(String symbol) {
 	if (strequ(symbol, "true")) {
 		delete symbol;
-		return expressionCallback(new BooleanValue(true, true));
+		return callbackAndEndFrame(expressionCallback, state,
+				(Expression*) new BooleanValue(true, true));
 	} else if (strequ(symbol, "false")) {
 		delete symbol;
-		return expressionCallback(new BooleanValue(false, true));
+		return callbackAndEndFrame(expressionCallback, state,
+				(Expression*) new BooleanValue(false, true));
 	} else {
-		mode = ExpressionCompilerStackFrameMode::SYMBOL;
-		this->symbol = symbol;
+		state->compilerStack->push(
+				new FunctionCallCompilerStackFrame(symbol,
+						BIND_MEM_CB(&ExpressionCompilerStackFrame::functionCallback, this),
+						state));
+		return Status::OK;
 	}
-	return Status::OK;
 }
 
 Status ExpressionCompilerStackFrame::subexpressionCallback(
@@ -645,8 +651,8 @@ Status ExpressionCompilerStackFrame::subexpressionCallback(
 
 Status ExpressionCompilerStackFrame::functionCallback(
 		FunctionCallReturn* funcCall) {
-	delete state->compilerStack->pop();
-	return expressionCallback(funcCall);
+	return callbackAndEndFrame(expressionCallback, state,
+			(Expression*) funcCall);
 }
 
 // ArgumentCompilerStackFrame
@@ -671,8 +677,7 @@ Status ArgumentsCompilerStackFrame::processCharacter(strchar c) {
 			return Status::ERROR("expected argument");
 		}
 
-		delete state->compilerStack->pop();
-		return argumentsCallback(arguments);
+		return callbackAndEndFrame(argumentsCallback, state, arguments);
 	} else {
 		// something else, must be an argument
 		requireArgument = false;
@@ -725,8 +730,8 @@ Code* mish_compile(String sourceCode, size size) {
 	uinteger i = 0;
 	for (; i < size + 1; i++) {
 		// get the next char to process
-		strchar c = ((uint8) c == size ? EOF : sourceCode[i]);
-		//debug("char", (uint64) c);
+		strchar c = (i == size ? EOF : sourceCode[i]);
+		//debug(c);
 
 		if (c == '\n') {
 			if (hasError) {
@@ -752,9 +757,11 @@ Code* mish_compile(String sourceCode, size size) {
 				}
 			}
 
+			//debug("type", (uinteger) state->compilerStack->peek()->type);
 			status = state->compilerStack->peek()->processCharacter(c);
 
 			if (status == Status::REPROCESS) {
+				i--;
 				continue;
 			} else if (status != Status::OK) {
 				hasError = true;
@@ -814,7 +821,7 @@ Code* mish_compile(String sourceCode, size size) {
 		return NULL;
 	}
 
-	// the code has been compiled, return it
+// the code has been compiled, return it
 	Code* code = ((BodyCompilerStackFrame*) state->compilerStack->peek())->code;
 	delete state;
 

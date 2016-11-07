@@ -86,6 +86,9 @@ namespace mishtest {
 	static void mish() {
 		log("  - mish");
 
+		// get allocated count
+		uint64 origionalAllocatedCount = getAllocatedCount();
+
 		// ---- register syscalls ----
 		List<ValueType>* triggerFlag1ParameterTypes = new List<ValueType>();
 		Function* triggerFlag1 = new Function("__triggerFlag1"_H, triggerFlag1ParameterTypes, VOID_VALUE, triggerFlag1Function);
@@ -106,9 +109,6 @@ namespace mishtest {
 		Function* trueTrueFalse = new Function("__trueTrueFalse"_H, trueTrueFalseParameterTypes, VOID_VALUE, trueTrueFalseFunction);
 		mish_syscalls.add(trueTrueFalse);
 		testSyscalls.add(trueTrueFalse);
-
-		// get allocated count
-		uint64 origionalAllocatedCount = getAllocatedCount();
 
 		// ---- tests ----
 
@@ -181,12 +181,6 @@ namespace mishtest {
 
 		// ---- done tests ----
 
-		// get allocated count
-		uint64 laterAllocatedCount = getAllocatedCount();
-
-		// confirm no memory leaks
-		assert(origionalAllocatedCount == laterAllocatedCount, "memory leak");
-
 		// unregister syscalls
 		Iterator<Function*> iterator = testSyscalls.iterator();
 		while (iterator.hasNext()) {
@@ -195,6 +189,15 @@ namespace mishtest {
 			delete function;
 		}
 		testSyscalls.clear();
+
+		// get allocated count
+		uint64 laterAllocatedCount = getAllocatedCount();
+
+		// confirm no memory leaks
+		if(origionalAllocatedCount != laterAllocatedCount) {
+			//dumpAllocated();
+		}
+		assert(origionalAllocatedCount == laterAllocatedCount, "memory leak");
 	}
 
 	void test() {
