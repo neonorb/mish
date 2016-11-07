@@ -77,6 +77,12 @@ public:
 
 	CompilerStackFrameType type;
 	CompilerState* state;
+
+	template<typename ... Args>
+	Status callbackAndEndFrame(Callback<Status(Args...)> callback,
+			Args ... args);
+
+	Status endFrame();
 };
 
 // BodyCompilerStackFrame
@@ -266,6 +272,15 @@ public:
 
 	Stack<CompilerStackFrame*>* compilerStack;
 };
+
+template<typename ... Args>
+Status CompilerStackFrame::callbackAndEndFrame(
+		Callback<Status(Args...)> callback, Args ... args) {
+	CompilerStackFrame* stackFrame = state->compilerStack->pop();
+	callback(args...);
+	delete stackFrame;
+	return Status::OK;
+}
 
 Code* mish_compile(String code);
 Code* mish_compile(String start, feta::size size);
