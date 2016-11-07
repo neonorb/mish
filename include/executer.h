@@ -39,7 +39,18 @@ public:
 	ExecutionStackFrame(ExecutionStackFrameType type);
 	virtual ~ExecutionStackFrame();
 
+	virtual Status execute();
+
+	void startFrame(ExecutionStackFrame* frame);
+	template<typename ... Args>
+	Status callbackAndEndFrame(Callback<Status(Args...)> callback,
+			Args ... args);
+	Status endFrame();
+	void evaluateExpression(Expression* expression,
+			Callback<Status(Value*)> response);
+
 	ExecutionStackFrameType type;
+	ExecuterState* state;
 };
 
 // frame types
@@ -48,6 +59,7 @@ public:
 	BytecodeStackFrame(List<Bytecode*>* bytecodesIterator);
 	~BytecodeStackFrame();
 
+	Status execute();
 	Status functionCallCallback(Value* ret);
 
 	Iterator<Bytecode*>* bytecodesIterator;
@@ -63,12 +75,14 @@ public:
 			Callback<Status(Value*)> response);
 	~FunctionCallStackFrame();
 
+	Status execute();
+
 	FunctionCallStackFrameMode mode;
 
 	Function* function;
 	List<Expression*>* arguments;
 	List<Value*>* evaluations;
-	Callback<Status(Value*)> response;
+	Callback<Status(Value*)> functionCallback;
 };
 
 // argument
@@ -78,6 +92,7 @@ public:
 			List<Value*>* evaluations);
 	~ArgumentStackFrame();
 
+	Status execute();
 	Status evaluationCallback(Value* evaluation);
 
 	Iterator<Expression*>* expressionIterator;
@@ -93,6 +108,7 @@ public:
 	IfStackFrame(List<IfConditionCode*>* ifs);
 	~IfStackFrame();
 
+	Status execute();
 	Status conditionEvaluationCallback(Value* value);
 
 	IfStackFrameMode mode;
@@ -111,6 +127,7 @@ public:
 	WhileStackFrame(Expression* condition, Code* code, bool isDoWhile);
 	~WhileStackFrame();
 
+	Status execute();
 	Status conditionEvaluationCallback(Value* value);
 
 	WhileStackFrameMode mode;

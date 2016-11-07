@@ -70,19 +70,19 @@ enum class CompilerStackFrameType {
 };
 class CompilerStackFrame {
 public:
-	CompilerStackFrame(CompilerStackFrameType type, CompilerState* state);
+	CompilerStackFrame(CompilerStackFrameType type);
 	virtual ~CompilerStackFrame();
 
 	virtual Status processCharacter(strchar c);
 
-	CompilerStackFrameType type;
-	CompilerState* state;
-
+	void startFrame(CompilerStackFrame* frame);
 	template<typename ... Args>
 	Status callbackAndEndFrame(Callback<Status(Args...)> callback,
 			Args ... args);
-
 	Status endFrame();
+
+	CompilerStackFrameType type;
+	CompilerState* state;
 };
 
 // BodyCompilerStackFrame
@@ -91,8 +91,7 @@ enum class BodyCompilerStackFrameMode {
 };
 class BodyCompilerStackFrame: public CompilerStackFrame {
 public:
-	BodyCompilerStackFrame(Callback<Status(Code*)> callback,
-			CompilerState* state);
+	BodyCompilerStackFrame(Callback<Status(Code*)> callback);
 	~BodyCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -114,12 +113,10 @@ enum class IfCompilerStackFrameType {
 };
 class IfCompilerStackFrame: public CompilerStackFrame {
 private:
-	IfCompilerStackFrame(IfCompilerStackFrameType type, CompilerState* state);
+	IfCompilerStackFrame(IfCompilerStackFrameType type);
 public:
-	IfCompilerStackFrame(Callback<Status(IfBytecode*)> ifBytecodeCallback,
-			CompilerState* state);
-	IfCompilerStackFrame(IfCompilerStackFrameType type, IfBytecode* ifBytecode,
-			CompilerState* state);
+	IfCompilerStackFrame(Callback<Status(IfBytecode*)> ifBytecodeCallback);
+	IfCompilerStackFrame(IfCompilerStackFrameType type, IfBytecode* ifBytecode);
 	~IfCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -140,8 +137,7 @@ enum class WhileCompilerStackFrameMode {
 class WhileCompilerStackFrame: public CompilerStackFrame {
 public:
 	WhileCompilerStackFrame(bool isDoWhile,
-			Callback<Status(WhileBytecode*)> whileBytecodeCallback,
-			CompilerState* state);
+			Callback<Status(WhileBytecode*)> whileBytecodeCallback);
 	~WhileCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -157,8 +153,7 @@ public:
 // SymbolCompilerStackFrame
 class SymbolCompilerStackFrame: public CompilerStackFrame {
 public:
-	SymbolCompilerStackFrame(Callback<Status(String)> symbolCallback,
-			CompilerState* state);
+	SymbolCompilerStackFrame(Callback<Status(String)> symbolCallback);
 	~SymbolCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -170,8 +165,7 @@ public:
 // StringCompilerStackFrame
 class StringCompilerStackFrame: public CompilerStackFrame {
 public:
-	StringCompilerStackFrame(Callback<Status(String)> stringCallback,
-			CompilerState* state);
+	StringCompilerStackFrame(Callback<Status(String)> stringCallback);
 	~StringCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -187,8 +181,7 @@ enum class CommentCompilerStackFrameType {
 };
 class CommentCompilerStackFrame: public CompilerStackFrame {
 public:
-	CommentCompilerStackFrame(CommentCompilerStackFrameType type,
-			CompilerState* state);
+	CommentCompilerStackFrame(CommentCompilerStackFrameType type);
 	~CommentCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -206,14 +199,12 @@ enum class FunctionCallCompilerStackFrameType {
 class FunctionCallCompilerStackFrame: public CompilerStackFrame {
 private:
 	FunctionCallCompilerStackFrame(String name,
-			FunctionCallCompilerStackFrameType type, CompilerState* state);
+			FunctionCallCompilerStackFrameType type);
 public:
 	FunctionCallCompilerStackFrame(String name,
-			Callback<Status(FunctionCallVoid*)> functionCallBytecodeCallback,
-			CompilerState* state);
+			Callback<Status(FunctionCallVoid*)> functionCallBytecodeCallback);
 	FunctionCallCompilerStackFrame(String name,
-			Callback<Status(FunctionCallReturn*)> functionCallExpressionCallback,
-			CompilerState* state);
+			Callback<Status(FunctionCallReturn*)> functionCallExpressionCallback);
 	~FunctionCallCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -233,8 +224,7 @@ enum class ExpressionCompilerStackFrameMode {
 class ExpressionCompilerStackFrame: public CompilerStackFrame {
 public:
 	ExpressionCompilerStackFrame(bool hasParenthesis,
-			Callback<Status(Expression*)> expressionCallback,
-			CompilerState* state);
+			Callback<Status(Expression*)> expressionCallback);
 	~ExpressionCompilerStackFrame();
 
 	Status processCharacter(strchar c);
@@ -252,8 +242,7 @@ public:
 class ArgumentsCompilerStackFrame: public CompilerStackFrame {
 public:
 	ArgumentsCompilerStackFrame(
-			Callback<Status(List<Expression*>*)> argumentsCallback,
-			CompilerState* state);
+			Callback<Status(List<Expression*>*)> argumentsCallback);
 	~ArgumentsCompilerStackFrame();
 
 	Status processCharacter(strchar c);

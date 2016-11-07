@@ -40,14 +40,18 @@ static bool isWhitespace(strchar c) {
 }
 
 // CompilerStackFrame
-CompilerStackFrame::CompilerStackFrame(CompilerStackFrameType type,
-		CompilerState* state) {
+CompilerStackFrame::CompilerStackFrame(CompilerStackFrameType type) {
 	this->type = type;
-	this->state = state;
+	state = NULL;
 }
 
 CompilerStackFrame::~CompilerStackFrame() {
 
+}
+
+void CompilerStackFrame::startFrame(CompilerStackFrame* frame) {
+	frame->state = state;
+	state->compilerStack->push(frame);
 }
 
 Status CompilerStackFrame::endFrame() {
@@ -63,8 +67,8 @@ Status CompilerStackFrame::processCharacter(strchar c) {
 
 // BodyCompilerStackFrame
 BodyCompilerStackFrame::BodyCompilerStackFrame(
-		Callback<Status(Code*)> codeCallback, CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::BODY, state) {
+		Callback<Status(Code*)> codeCallback) :
+		CompilerStackFrame(CompilerStackFrameType::BODY) {
 	mode = BodyCompilerStackFrameMode::READY;
 	code = new Code();
 	this->codeCallback = codeCallback;
@@ -86,13 +90,13 @@ Status BodyCompilerStackFrame::processCharacter(strchar c) {
 			return callbackAndEndFrame(codeCallback, code);
 		} else if (isValidSymbolChar(c)) {
 			// begin a symbol
-			state->compilerStack->push(new SymbolCompilerStackFrame(
-			BIND_MEM_CB(&BodyCompilerStackFrame::symbolCallback, this), state));
+			startFrame(new SymbolCompilerStackFrame(
+			BIND_MEM_CB(&BodyCompilerStackFrame::symbolCallback, this)));
 			return Status::REPROCESS;
 		} else if (c == '#') {
-			state->compilerStack->push(
+			startFrame(
 					new CommentCompilerStackFrame(
-							CommentCompilerStackFrameType::LINE, state));
+							CommentCompilerStackFrameType::LINE));
 		} else if (c == EOF) {
 			return Status::OK;
 		} else {
@@ -118,10 +122,9 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 		// while
 		delete symbol;
 
-		state->compilerStack->push(
+		startFrame(
 				new WhileCompilerStackFrame(false,
-						BIND_MEM_CB((Status(BodyCompilerStackFrame::*)(WhileBytecode*))&BodyCompilerStackFrame::bytecodeCallback, this),
-						state));
+						BIND_MEM_CB((Status(BodyCompilerStackFrame::*)(WhileBytecode*))&BodyCompilerStackFrame::bytecodeCallback, this)));
 	} else if (strequ(symbol, "dowhile")) {
 		if (!lastWasTerminated) {
 			return Status::ERROR("last statement wasn't terminated");
@@ -130,10 +133,9 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 		// dowhile
 		delete symbol;
 
-		state->compilerStack->push(
+		startFrame(
 				new WhileCompilerStackFrame(true,
-						BIND_MEM_CB((Status (BodyCompilerStackFrame::*)(WhileBytecode*))&BodyCompilerStackFrame::bytecodeCallback, this),
-						state));
+						BIND_MEM_CB((Status (BodyCompilerStackFrame::*)(WhileBytecode*))&BodyCompilerStackFrame::bytecodeCallback, this)));
 	} else if (strequ(symbol, "if")) {
 		if (!lastWasTerminated) {
 			return Status::ERROR("last statement wasn't terminated");
@@ -142,10 +144,9 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 		// if
 		delete symbol;
 
-		state->compilerStack->push(
+		startFrame(
 				new IfCompilerStackFrame(
-						BIND_MEM_CB((Status (BodyCompilerStackFrame::*) (IfBytecode*))&BodyCompilerStackFrame::bytecodeCallback, this),
-						state));
+						BIND_MEM_CB((Status (BodyCompilerStackFrame::*) (IfBytecode*))&BodyCompilerStackFrame::bytecodeCallback, this)));
 	} else if (strequ(symbol, "elseif")) {
 		// elseif
 		delete symbol;
@@ -158,9 +159,9 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 						"may not terminate an if statement before an elseif statement");
 			}
 
-			state->compilerStack->push(
+			startFrame(
 					new IfCompilerStackFrame(IfCompilerStackFrameType::ELSEIF,
-							(IfBytecode*) lastBytecode, state));
+							(IfBytecode*) lastBytecode));
 		} else {
 			return Status::ERROR(
 					"elseif statement may only follow an if statement");
@@ -177,9 +178,9 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 						"may not terminate an if statement before and else statement");
 			}
 
-			state->compilerStack->push(
+			startFrame(
 					new IfCompilerStackFrame(IfCompilerStackFrameType::ELSE,
-							(IfBytecode*) lastBytecode, state));
+							(IfBytecode*) lastBytecode));
 		} else {
 			return Status::ERROR(
 					"else statement may only follow an if statement");
@@ -190,10 +191,10 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 		}
 
 		// function
-		state->compilerStack->push(
+		startFrame(
 				new FunctionCallCompilerStackFrame(symbol,
 						BIND_MEM_CB((Status (BodyCompilerStackFrame::*)(FunctionCallVoid*))&BodyCompilerStackFrame::bytecodeCallback,
-								this), state));
+								this)));
 	}
 	mode = BodyCompilerStackFrameMode::READY;
 	lastWasTerminated = false;
@@ -202,9 +203,8 @@ Status BodyCompilerStackFrame::symbolCallback(String symbol) {
 }
 
 // IfCompilerStackFrame
-IfCompilerStackFrame::IfCompilerStackFrame(IfCompilerStackFrameType type,
-		CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::IF, state) {
+IfCompilerStackFrame::IfCompilerStackFrame(IfCompilerStackFrameType type) :
+		CompilerStackFrame(CompilerStackFrameType::IF) {
 	this->type = type;
 	mode = IfCompilerStackFrameMode::EXPECT_P;
 	condition = NULL;
@@ -212,15 +212,15 @@ IfCompilerStackFrame::IfCompilerStackFrame(IfCompilerStackFrameType type,
 }
 
 IfCompilerStackFrame::IfCompilerStackFrame(
-		Callback<Status(IfBytecode*)> ifBytecodeCallback, CompilerState* state) :
-		IfCompilerStackFrame(IfCompilerStackFrameType::IF, state) {
+		Callback<Status(IfBytecode*)> ifBytecodeCallback) :
+		IfCompilerStackFrame(IfCompilerStackFrameType::IF) {
 	this->mode = IfCompilerStackFrameMode::EXPECT_P;
 	this->ifBytecodeCallback = ifBytecodeCallback;
 }
 
 IfCompilerStackFrame::IfCompilerStackFrame(IfCompilerStackFrameType type,
-		IfBytecode* ifBytecode, CompilerState* state) :
-		IfCompilerStackFrame(type, state) {
+		IfBytecode* ifBytecode) :
+		IfCompilerStackFrame(type) {
 	if (type == IfCompilerStackFrameType::ELSEIF) {
 		mode = IfCompilerStackFrameMode::EXPECT_P;
 	} else if (type == IfCompilerStackFrameType::ELSE) {
@@ -240,17 +240,15 @@ Status IfCompilerStackFrame::processCharacter(strchar c) {
 	if (mode == IfCompilerStackFrameMode::EXPECT_P) {
 		if (c == '(') {
 			mode = IfCompilerStackFrameMode::EXPECT_BODY;
-			state->compilerStack->push(
-					new ArgumentsCompilerStackFrame(
-					BIND_MEM_CB(&IfCompilerStackFrame::conditionCallback, this),
-							state));
+			startFrame(new ArgumentsCompilerStackFrame(
+			BIND_MEM_CB(&IfCompilerStackFrame::conditionCallback, this)));
 		} else {
 			return Status::ERROR("expected (");
 		}
 	} else if (mode == IfCompilerStackFrameMode::EXPECT_BODY) {
 		if (c == '{') {
-			state->compilerStack->push(new BodyCompilerStackFrame(
-			BIND_MEM_CB(&IfCompilerStackFrame::codeCallback, this), state));
+			startFrame(new BodyCompilerStackFrame(
+			BIND_MEM_CB(&IfCompilerStackFrame::codeCallback, this)));
 		} else {
 			return Status::ERROR("expected {");
 		}
@@ -289,9 +287,8 @@ Status IfCompilerStackFrame::codeCallback(Code* code) {
 
 // WhileCompilerStackFrame
 WhileCompilerStackFrame::WhileCompilerStackFrame(bool isDoWhile,
-		Callback<Status(WhileBytecode*)> whileBytecodeCallback,
-		CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::WHILE, state) {
+		Callback<Status(WhileBytecode*)> whileBytecodeCallback) :
+		CompilerStackFrame(CompilerStackFrameType::WHILE) {
 	this->mode = WhileCompilerStackFrameMode::EXPECT_P;
 	this->isDoWhile = isDoWhile;
 	this->whileBytecodeCallback = whileBytecodeCallback;
@@ -307,17 +304,15 @@ Status WhileCompilerStackFrame::processCharacter(strchar c) {
 	if (mode == WhileCompilerStackFrameMode::EXPECT_P) {
 		if (c == '(') {
 			mode = WhileCompilerStackFrameMode::EXPECT_BODY;
-			state->compilerStack->push(
-					new ArgumentsCompilerStackFrame(
-							BIND_MEM_CB(&WhileCompilerStackFrame::conditionCallback, this),
-							state));
+			startFrame(new ArgumentsCompilerStackFrame(
+			BIND_MEM_CB(&WhileCompilerStackFrame::conditionCallback, this)));
 		} else {
 			return Status::ERROR("expected (");
 		}
 	} else if (mode == WhileCompilerStackFrameMode::EXPECT_BODY) {
 		if (c == '{') {
-			state->compilerStack->push(new BodyCompilerStackFrame(
-			BIND_MEM_CB(&WhileCompilerStackFrame::codeCallback, this), state));
+			startFrame(new BodyCompilerStackFrame(
+			BIND_MEM_CB(&WhileCompilerStackFrame::codeCallback, this)));
 		} else {
 			return Status::ERROR("expected {");
 		}
@@ -347,8 +342,8 @@ Status WhileCompilerStackFrame::codeCallback(Code* code) {
 
 // SymbolCompilerStackFrame
 SymbolCompilerStackFrame::SymbolCompilerStackFrame(
-		Callback<Status(String)> symbolCallback, CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::SYMBOL, state) {
+		Callback<Status(String)> symbolCallback) :
+		CompilerStackFrame(CompilerStackFrameType::SYMBOL) {
 	symbol = new List<strchar>();
 	this->symbolCallback = symbolCallback;
 }
@@ -377,8 +372,8 @@ Status SymbolCompilerStackFrame::processCharacter(strchar c) {
 
 // StringCompilerStackFrame
 StringCompilerStackFrame::StringCompilerStackFrame(
-		Callback<Status(String)> stringCallback, CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::STRING, state) {
+		Callback<Status(String)> stringCallback) :
+		CompilerStackFrame(CompilerStackFrameType::STRING) {
 	string = new List<strchar>();
 	escaping = false;
 	this->stringCallback = stringCallback;
@@ -427,8 +422,8 @@ Status StringCompilerStackFrame::processCharacter(strchar c) {
 
 // CommentCompilerStackFrame
 CommentCompilerStackFrame::CommentCompilerStackFrame(
-		CommentCompilerStackFrameType type, CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::COMMENT, state) {
+		CommentCompilerStackFrameType type) :
+		CompilerStackFrame(CompilerStackFrameType::COMMENT) {
 	this->type = type;
 }
 
@@ -451,26 +446,24 @@ Status CommentCompilerStackFrame::processCharacter(strchar c) {
 
 // FunctionCallCompilerStackFrame
 FunctionCallCompilerStackFrame::FunctionCallCompilerStackFrame(String name,
-		FunctionCallCompilerStackFrameType type, CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::FUNCTION_CALL, state) {
+		FunctionCallCompilerStackFrameType type) :
+		CompilerStackFrame(CompilerStackFrameType::FUNCTION_CALL) {
 	this->name = name;
 	this->type = type;
 	mode = FunctionCallCompilerStackFrameMode::EXPECT_P;
 }
 
 FunctionCallCompilerStackFrame::FunctionCallCompilerStackFrame(String name,
-		Callback<Status(FunctionCallVoid*)> functionCallBytecodeCallback,
-		CompilerState* state) :
+		Callback<Status(FunctionCallVoid*)> functionCallBytecodeCallback) :
 		FunctionCallCompilerStackFrame(name,
-				FunctionCallCompilerStackFrameType::BYTECODE, state) {
+				FunctionCallCompilerStackFrameType::BYTECODE) {
 	this->functionCallBytecodeCallback = functionCallBytecodeCallback;
 }
 
 FunctionCallCompilerStackFrame::FunctionCallCompilerStackFrame(String name,
-		Callback<Status(FunctionCallReturn*)> functionCallExpressionCallback,
-		CompilerState* state) :
+		Callback<Status(FunctionCallReturn*)> functionCallExpressionCallback) :
 		FunctionCallCompilerStackFrame(name,
-				FunctionCallCompilerStackFrameType::EXPRESSION, state) {
+				FunctionCallCompilerStackFrameType::EXPRESSION) {
 	this->functionCallExpressionCallback = functionCallExpressionCallback;
 }
 
@@ -481,10 +474,9 @@ FunctionCallCompilerStackFrame::~FunctionCallCompilerStackFrame() {
 Status FunctionCallCompilerStackFrame::processCharacter(strchar c) {
 	if (mode == FunctionCallCompilerStackFrameMode::EXPECT_P) {
 		if (c == '(') {
-			state->compilerStack->push(
+			startFrame(
 					new ArgumentsCompilerStackFrame(
-							BIND_MEM_CB(&FunctionCallCompilerStackFrame::argumentsCallback, this),
-							state));
+							BIND_MEM_CB(&FunctionCallCompilerStackFrame::argumentsCallback, this)));
 		} else {
 			return Status::ERROR("expected (");
 		}
@@ -559,8 +551,8 @@ Status FunctionCallCompilerStackFrame::argumentsCallback(
 
 // ExpressionCompilerStackFrame
 ExpressionCompilerStackFrame::ExpressionCompilerStackFrame(bool hasParenthesis,
-		Callback<Status(Expression*)> expressionCallback, CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::EXPRESSION, state) {
+		Callback<Status(Expression*)> expressionCallback) :
+		CompilerStackFrame(CompilerStackFrameType::EXPRESSION) {
 	this->hasParenthesis = hasParenthesis;
 	this->expressionCallback = expressionCallback;
 	mode = ExpressionCompilerStackFrameMode::READY;
@@ -574,23 +566,18 @@ Status ExpressionCompilerStackFrame::processCharacter(strchar c) {
 	if (mode == ExpressionCompilerStackFrameMode::READY) {
 		if (c == '\'') {
 			// begin string
-			state->compilerStack->push(
-					new StringCompilerStackFrame(
-							BIND_MEM_CB(&ExpressionCompilerStackFrame::stringCallback, this),
-							state));
+			startFrame(new StringCompilerStackFrame(
+			BIND_MEM_CB(&ExpressionCompilerStackFrame::stringCallback, this)));
 		} else if (isValidSymbolChar(c)) {
-			state->compilerStack->push(
-					new SymbolCompilerStackFrame(
-							BIND_MEM_CB(&ExpressionCompilerStackFrame::symbolCallback, this),
-							state));
+			startFrame(new SymbolCompilerStackFrame(
+			BIND_MEM_CB(&ExpressionCompilerStackFrame::symbolCallback, this)));
 			return Status::REPROCESS;
 		} else if (c == '(') {
 			return Status::ERROR(
 					"parenthesis in expression not implemented yet");
-			state->compilerStack->push(
+			startFrame(
 					new ExpressionCompilerStackFrame(true,
-							BIND_MEM_CB(&ExpressionCompilerStackFrame::subexpressionCallback, this),
-							state));
+							BIND_MEM_CB(&ExpressionCompilerStackFrame::subexpressionCallback, this)));
 		} else {
 			if (c == ')') {
 				endFrame();
@@ -624,10 +611,8 @@ Status ExpressionCompilerStackFrame::symbolCallback(String symbol) {
 		return callbackAndEndFrame(expressionCallback,
 				(Expression*) new BooleanValue(false, true));
 	} else {
-		state->compilerStack->push(
-				new FunctionCallCompilerStackFrame(symbol,
-						BIND_MEM_CB(&ExpressionCompilerStackFrame::functionCallback, this),
-						state));
+		startFrame(new FunctionCallCompilerStackFrame(symbol,
+		BIND_MEM_CB(&ExpressionCompilerStackFrame::functionCallback, this)));
 		return Status::OK;
 	}
 }
@@ -646,9 +631,8 @@ Status ExpressionCompilerStackFrame::functionCallback(
 
 // ArgumentCompilerStackFrame
 ArgumentsCompilerStackFrame::ArgumentsCompilerStackFrame(
-		Callback<Status(List<Expression*>*)> argumentsCallback,
-		CompilerState* state) :
-		CompilerStackFrame(CompilerStackFrameType::ARGUMENT, state) {
+		Callback<Status(List<Expression*>*)> argumentsCallback) :
+		CompilerStackFrame(CompilerStackFrameType::ARGUMENT) {
 	this->argumentsCallback = argumentsCallback;
 	arguments = new List<Expression*>();
 	requireArgument = false;
@@ -670,10 +654,8 @@ Status ArgumentsCompilerStackFrame::processCharacter(strchar c) {
 	} else {
 		// something else, must be an argument
 		requireArgument = false;
-		state->compilerStack->push(
-				new ExpressionCompilerStackFrame(false,
-						BIND_MEM_CB(&ArgumentsCompilerStackFrame::argumentCallback, this),
-						state));
+		startFrame(new ExpressionCompilerStackFrame(false,
+		BIND_MEM_CB(&ArgumentsCompilerStackFrame::argumentCallback, this)));
 		return Status::REPROCESS;
 	}
 
@@ -704,14 +686,16 @@ Code* mish_compile(String code) {
 
 Code* mish_compile(String sourceCode, size size) {
 	CompilerState* state = new CompilerState();
-	state->compilerStack->push(new BodyCompilerStackFrame( { }, state));
+	BodyCompilerStackFrame* firstFrame = new BodyCompilerStackFrame( { });
+	firstFrame->state = state;
+	state->compilerStack->push(firstFrame);
 
-// line stuff
+	// line stuff
 	uint64 lineStart = 0;
 	uint64 lineEnd = NULL;
 	uint64 lineNumber = 1;
 
-// error message stuff
+	// error message stuff
 	bool hasError = false;
 	uint64 errorPosition = NULL;
 	Status status = Status::OK;
@@ -810,7 +794,7 @@ Code* mish_compile(String sourceCode, size size) {
 		return NULL;
 	}
 
-// the code has been compiled, return it
+	// the code has been compiled, return it
 	Code* code = ((BodyCompilerStackFrame*) state->compilerStack->peek())->code;
 	delete state;
 
