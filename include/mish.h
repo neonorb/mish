@@ -8,14 +8,14 @@
 #ifndef INCLUDE_MISH_H_
 #define INCLUDE_MISH_H_
 
+#include <bytecode.h>
+#include <expression.h>
 #include <code.h>
-#include <functioncallreturn.h>
+#include <compile.h>
+#include <execute.h>
+#include <schedule.h>
 #include <string.h>
 #include <syscall.h>
-
-#include <compiler.h>
-#include <executer.h>
-#include <scheduler.h>
 
 extern List<Function*> mish_syscalls;
 

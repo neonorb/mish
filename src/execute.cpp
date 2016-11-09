@@ -5,7 +5,7 @@
  *      Author: chris13524
  */
 
-#include <executer.h>
+#include <execute.h>
 #include <feta.h>
 #include <memory.h>
 
@@ -16,25 +16,25 @@ namespace execute {
 // ---- state ----
 
 // ExecutionStackFrame
-ExecutionStackFrame::ExecutionStackFrame(ExecutionStackFrameType type) {
+StackFrame::StackFrame(Type type) {
 	this->type = type;
 	state = NULL;
 }
 
-ExecutionStackFrame::~ExecutionStackFrame() {
+StackFrame::~StackFrame() {
 
 }
 
-Status ExecutionStackFrame::execute() {
+Status StackFrame::execute() {
 	return Status::OK;
 }
 
-void ExecutionStackFrame::startFrame(ExecutionStackFrame* frame) {
+void StackFrame::startFrame(StackFrame* frame) {
 	frame->state = state;
 	state->executionStack->push(frame);
 }
 
-Status ExecutionStackFrame::endFrame() {
+Status StackFrame::endFrame() {
 	if (state->executionStack->size() == 1) {
 		delete state->executionStack->pop();
 		return Status::DONE;
@@ -44,17 +44,17 @@ Status ExecutionStackFrame::endFrame() {
 	}
 }
 
-void ExecutionStackFrame::evaluateExpression(Expression* expression,
+void StackFrame::evaluateExpression(Expression* expression,
 		Callback<Status(Value*)> response) {
 	switch (expression->expressionType) {
-	case VALUE_EXPRESSION: {
+	case ExpressionType::VALUE: {
 		Value* constant = (Value*) expression;
 		response(constant);
 	}
 		break;
-	case FUNCTION_EXPRESSION:
-		FunctionCallReturn* functionCallReturn =
-				(FunctionCallReturn*) expression;
+	case ExpressionType::FUNCTION:
+		FunctionCallExpression* functionCallReturn =
+				(FunctionCallExpression*) expression;
 
 		startFrame(
 				new FunctionCallStackFrame(functionCallReturn->function,
@@ -66,7 +66,7 @@ void ExecutionStackFrame::evaluateExpression(Expression* expression,
 
 // BytecodeStackFrame
 BytecodeStackFrame::BytecodeStackFrame(List<Bytecode*>* bytecodes) :
-		ExecutionStackFrame(ExecutionStackFrameType::BYTECODE) {
+		StackFrame(Type::BYTECODE) {
 	this->bytecodesIterator = new Iterator<Bytecode*>(bytecodes->iterator());
 }
 
@@ -83,17 +83,17 @@ Status BytecodeStackFrame::functionCallCallback(Value* ret) {
 Status BytecodeStackFrame::execute() {
 	if (bytecodesIterator->hasNext()) {
 		Bytecode* bytecode = bytecodesIterator->next();
-		if (bytecode->type == BytecodeType::FUNC_CALL) {
-			FunctionCallVoid* functionCallVoid = (FunctionCallVoid*) bytecode;
+		if (bytecode->type == Bytecode::Type::FUNC_CALL) {
+			FunctionCallBytecode* functionCallVoid = (FunctionCallBytecode*) bytecode;
 
 			startFrame(
 					new FunctionCallStackFrame(functionCallVoid->function,
 							functionCallVoid->arguments,
 							BIND_MEM_CB(&BytecodeStackFrame::functionCallCallback, this)));
-		} else if (bytecode->type == BytecodeType::IF) {
+		} else if (bytecode->type == Bytecode::Type::IF) {
 			IfBytecode* ifBytecode = (IfBytecode*) bytecode;
 			startFrame(new IfStackFrame(ifBytecode->ifs));
-		} else if (bytecode->type == BytecodeType::WHILE) {
+		} else if (bytecode->type == Bytecode::Type::WHILE) {
 			WhileBytecode* whileBytecode = (WhileBytecode*) bytecode;
 			startFrame(
 					new WhileStackFrame(whileBytecode->condition,
@@ -114,7 +114,7 @@ Status BytecodeStackFrame::execute() {
 // FunctionCallStackFrame
 FunctionCallStackFrame::FunctionCallStackFrame(Function* function,
 		List<Expression*>* arguments, Callback<Status(Value*)> functionCallback) :
-		ExecutionStackFrame(ExecutionStackFrameType::FUNCTION_CALL) {
+		StackFrame(Type::FUNCTION_CALL) {
 	mode = FunctionCallStackFrameMode::EVALUATE;
 
 	this->function = function;
@@ -166,7 +166,7 @@ Status FunctionCallStackFrame::execute() {
 // ArgumentStackFrame
 ArgumentStackFrame::ArgumentStackFrame(List<Expression*>* expressions,
 		List<Value*>* evaluations) :
-		ExecutionStackFrame(ExecutionStackFrameType::ARGUMENT) {
+		StackFrame(Type::ARGUMENT) {
 	this->expressionIterator = new Iterator<Expression*>(
 			expressions->iterator());
 	this->evaluations = evaluations;
@@ -197,8 +197,8 @@ Status ArgumentStackFrame::evaluationCallback(Value* evaluation) {
 
 // IfStackFrame
 IfStackFrame::IfStackFrame(List<IfConditionCode*>* ifs) :
-		ExecutionStackFrame(ExecutionStackFrameType::IF) {
-	mode = IfStackFrameMode::EVALUATE;
+		StackFrame(Type::IF) {
+	mode = Mode::EVALUATE;
 
 	ifsIterator = new Iterator<IfConditionCode*>(ifs->iterator());
 
@@ -214,29 +214,29 @@ IfStackFrame::~IfStackFrame() {
 }
 
 Status IfStackFrame::execute() {
-	if (mode == IfStackFrameMode::EVALUATE) {
+	if (mode == Mode::EVALUATE) {
 		if (ifsIterator->hasNext()) {
 			evaluateExpression(ifsIterator->peekNext()->condition,
 			BIND_MEM_CB(&IfStackFrame::conditionEvaluationCallback, this));
-			mode = IfStackFrameMode::TEST;
+			mode = Mode::TEST;
 		} else {
 			return endFrame();
 		}
-	} else if (mode == IfStackFrameMode::TEST) {
+	} else if (mode == Mode::TEST) {
 		if (((BooleanValue*) lastEvaluation)->value) {
 			// evaluation is true, run body
-			mode = IfStackFrameMode::RUN;
+			mode = Mode::RUN;
 		} else {
 			// evaluation is false, go to next condition (else/elseif)
 			ifsIterator->next();
-			mode = IfStackFrameMode::EVALUATE;
+			mode = Mode::EVALUATE;
 		}
-	} else if (mode == IfStackFrameMode::RUN) {
+	} else if (mode == Mode::RUN) {
 		// test was successful, run and be done
-		mode = IfStackFrameMode::DONE;
+		mode = Mode::DONE;
 		startFrame(
 				new BytecodeStackFrame(ifsIterator->next()->code->bytecodes));
-	} else if (mode == IfStackFrameMode::DONE) {
+	} else if (mode == Mode::DONE) {
 		// previous call was successful, exit
 		return endFrame();
 	} else {
@@ -262,14 +262,14 @@ Status IfStackFrame::conditionEvaluationCallback(Value* value) {
 // WhileStackFrame
 WhileStackFrame::WhileStackFrame(Expression* condition, Code* code,
 		bool isDoWhile) :
-		ExecutionStackFrame(ExecutionStackFrameType::WHILE) {
+		StackFrame(Type::WHILE) {
 	this->condition = condition;
 	this->code = code;
 
 	if (isDoWhile) {
-		mode = WhileStackFrameMode::RUN;
+		mode = Mode::RUN;
 	} else {
-		mode = WhileStackFrameMode::EVALUATE;
+		mode = Mode::EVALUATE;
 	}
 
 	lastEvaluation = NULL;
@@ -282,19 +282,19 @@ WhileStackFrame::~WhileStackFrame() {
 }
 
 Status WhileStackFrame::execute() {
-	if (mode == WhileStackFrameMode::EVALUATE) {
+	if (mode == Mode::EVALUATE) {
 		evaluateExpression(condition,
 		BIND_MEM_CB(&WhileStackFrame::conditionEvaluationCallback, this));
-		mode = WhileStackFrameMode::TEST;
-	} else if (mode == WhileStackFrameMode::TEST) {
+		mode = Mode::TEST;
+	} else if (mode == Mode::TEST) {
 		if (((BooleanValue*) lastEvaluation)->value) {
-			mode = WhileStackFrameMode::RUN;
+			mode = Mode::RUN;
 		} else {
 			return endFrame();
 		}
-	} else if (mode == WhileStackFrameMode::RUN) {
+	} else if (mode == Mode::RUN) {
 		startFrame(new BytecodeStackFrame(code->bytecodes));
-		mode = WhileStackFrameMode::EVALUATE;
+		mode = Mode::EVALUATE;
 	} else {
 		crash("unknown WhileStackFrameMode");
 	}
@@ -316,11 +316,11 @@ Status WhileStackFrame::conditionEvaluationCallback(Value* value) {
 }
 
 // ExecuterState
-ExecuterState::ExecuterState() {
-	executionStack = new Stack<ExecutionStackFrame*>();
+State::State() {
+	executionStack = new Stack<StackFrame*>();
 }
 
-ExecuterState::~ExecuterState() {
+State::~State() {
 	while (executionStack->size() > 0) {
 		delete executionStack->pop();
 	}
@@ -329,12 +329,12 @@ ExecuterState::~ExecuterState() {
 
 // ---- execution ----
 
-Status execute(ExecuterState* state) {
+Status execute(State* state) {
 	return state->executionStack->peek()->execute();
 }
 
 void execute(Code* code) {
-	ExecuterState* state = new ExecuterState();
+	State* state = new State();
 
 	// start executing on first bytecode
 	// TODO change this so that execution can resume and exit after every cycle

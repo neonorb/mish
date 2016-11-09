@@ -10,14 +10,15 @@
 Thread::Thread(Code* code, ThreadPriority priority) {
 	this->code = code;
 
-	state = new mish::execute::ExecuterState();
-	mish::execute::BytecodeStackFrame* firstFrame = new mish::execute::BytecodeStackFrame(code->bytecodes);
+	state = new mish::execute::State();
+	mish::execute::BytecodeStackFrame* firstFrame =
+			new mish::execute::BytecodeStackFrame(code->bytecodes);
 	firstFrame->state = state;
 	state->executionStack->push(firstFrame);
 
 	this->priority = priority;
 
-	onThreadExit = NULL;
+	onThreadExit = (Callback<void(Thread*)> ) { };
 }
 
 Thread::~Thread() {

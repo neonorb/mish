@@ -5,24 +5,24 @@
  *      Author: chris
  */
 
-#include <bytecode.h>
+#include <mish.h>
 
 // bytecode
-Bytecode::Bytecode(BytecodeType instruction) {
+Bytecode::Bytecode(Type instruction) {
 	this->type = instruction;
 }
 
 Bytecode::~Bytecode() {
 }
 
-FunctionCallVoid::FunctionCallVoid(Function* function,
+FunctionCallBytecode::FunctionCallBytecode(Function* function,
 		List<Expression*>* arguments) :
-		Bytecode(BytecodeType::FUNC_CALL) {
+		Bytecode(Type::FUNC_CALL) {
 	this->function = function;
 	this->arguments = arguments;
 }
 
-FunctionCallVoid::~FunctionCallVoid() {
+FunctionCallBytecode::~FunctionCallBytecode() {
 	Iterator<Expression*> iterator = arguments->iterator();
 	while (iterator.hasNext()) {
 		delete iterator.next();
@@ -44,7 +44,7 @@ IfConditionCode::~IfConditionCode() {
 
 // IfBytecode
 IfBytecode::IfBytecode() :
-		Bytecode(BytecodeType::IF) {
+		Bytecode(Type::IF) {
 	ifs = new List<IfConditionCode*>();
 }
 
@@ -63,7 +63,7 @@ IfBytecode::~IfBytecode() {
 
 // WhileBytecode
 WhileBytecode::WhileBytecode(Expression* condition, Code* code, bool isDoWhile) :
-		Bytecode(BytecodeType::WHILE) {
+		Bytecode(Type::WHILE) {
 	this->condition = condition;
 	this->code = code;
 	this->isDoWhile = isDoWhile;

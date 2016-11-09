@@ -5,13 +5,13 @@
  *      Author: chris13524
  */
 
-#ifndef INCLUDE_EXECUTER_H_
-#define INCLUDE_EXECUTER_H_
+#ifndef INCLUDE_EXECUTE_H_
+#define INCLUDE_EXECUTE_H_
 
 namespace mish {
 namespace execute {
 
-class ExecuterState;
+class State;
 
 }
 }
@@ -23,25 +23,24 @@ class ExecuterState;
 using namespace feta;
 
 namespace mish {
-
 namespace execute {
 
 enum class Status {
 	DONE, OK
 };
 
-// frame
-enum class ExecutionStackFrameType {
-	BYTECODE, FUNCTION_CALL, ARGUMENT, IF, WHILE
-};
-class ExecutionStackFrame {
+// ==== StackFrame ====
+class StackFrame {
 public:
-	ExecutionStackFrame(ExecutionStackFrameType type);
-	virtual ~ExecutionStackFrame();
+	enum class Type {
+		BYTECODE, FUNCTION_CALL, ARGUMENT, IF, WHILE
+	};
+	StackFrame(Type type);
+	virtual ~StackFrame();
 
 	virtual Status execute();
 
-	void startFrame(ExecutionStackFrame* frame);
+	void startFrame(StackFrame* frame);
 	template<typename ... Args>
 	Status callbackAndEndFrame(Callback<Status(Args...)> callback,
 			Args ... args);
@@ -49,12 +48,12 @@ public:
 	void evaluateExpression(Expression* expression,
 			Callback<Status(Value*)> response);
 
-	ExecutionStackFrameType type;
-	ExecuterState* state;
+	Type type;
+	State* state;
 };
 
-// frame types
-class BytecodeStackFrame: public ExecutionStackFrame {
+// ==== BytecodeStackFrame ====
+class BytecodeStackFrame: public StackFrame {
 public:
 	BytecodeStackFrame(List<Bytecode*>* bytecodesIterator);
 	~BytecodeStackFrame();
@@ -65,12 +64,12 @@ public:
 	Iterator<Bytecode*>* bytecodesIterator;
 };
 
-// function call
-enum class FunctionCallStackFrameMode {
-	EVALUATE, CALL, RETURN
-};
-class FunctionCallStackFrame: public ExecutionStackFrame {
+// ==== FunctionCallStackFrame ====
+class FunctionCallStackFrame: public StackFrame {
 public:
+	enum class FunctionCallStackFrameMode {
+		EVALUATE, CALL, RETURN
+	};
 	FunctionCallStackFrame(Function* function, List<Expression*>* arguments,
 			Callback<Status(Value*)> response);
 	~FunctionCallStackFrame();
@@ -85,8 +84,8 @@ public:
 	Callback<Status(Value*)> functionCallback;
 };
 
-// argument
-class ArgumentStackFrame: public ExecutionStackFrame {
+// ==== ArgumentStackFrame ====
+class ArgumentStackFrame: public StackFrame {
 public:
 	ArgumentStackFrame(List<Expression*>* expressions,
 			List<Value*>* evaluations);
@@ -99,38 +98,38 @@ public:
 	List<Value*>* evaluations;
 };
 
-// if
-enum class IfStackFrameMode {
-	EVALUATE, TEST, RUN, DONE
-};
-class IfStackFrame: public ExecutionStackFrame {
+// ==== IfStackFrame ====
+class IfStackFrame: public StackFrame {
 public:
+	enum class Mode {
+		EVALUATE, TEST, RUN, DONE
+	};
 	IfStackFrame(List<IfConditionCode*>* ifs);
 	~IfStackFrame();
 
 	Status execute();
 	Status conditionEvaluationCallback(Value* value);
 
-	IfStackFrameMode mode;
+	Mode mode;
 
 	Iterator<IfConditionCode*>* ifsIterator;
 
 	Value* lastEvaluation;
 };
 
-// while
-enum class WhileStackFrameMode {
-	EVALUATE, TEST, RUN
-};
-class WhileStackFrame: public ExecutionStackFrame {
+// ==== WhileStackFrame ====
+class WhileStackFrame: public StackFrame {
 public:
+	enum class Mode {
+		EVALUATE, TEST, RUN
+	};
 	WhileStackFrame(Expression* condition, Code* code, bool isDoWhile);
 	~WhileStackFrame();
 
 	Status execute();
 	Status conditionEvaluationCallback(Value* value);
 
-	WhileStackFrameMode mode;
+	Mode mode;
 
 	Expression* condition;
 	Code* code;
@@ -138,20 +137,20 @@ public:
 	Value* lastEvaluation;
 };
 
-// state
-class ExecuterState {
+// ==== State ====
+class State {
 public:
-	ExecuterState();
-	~ExecuterState();
+	State();
+	~State();
 
-	Stack<ExecutionStackFrame*>* executionStack;
+	Stack<StackFrame*>* executionStack;
 };
 
 void execute(Code* code);
-Status execute(ExecuterState* state);
+Status execute(State* state);
 
 }
 
 }
 
-#endif /* INCLUDE_EXECUTER_H_ */
+#endif /* INCLUDE_EXECUTE_H_ */

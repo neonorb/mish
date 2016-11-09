@@ -11,9 +11,8 @@
 class Function;
 
 #include <code.h>
+#include <mish.h>
 #include <list.h>
-#include <expression.h>
-#include <value.h>
 
 typedef Value* (*FunctionHandler)(List<Value*>* arguments);
 
@@ -26,9 +25,12 @@ public:
 	FunctionHandler native;
 	Code* code;
 
-	Function(String name, List<ValueType>* parameterTypes, ValueType returnType, Code* code, FunctionHandler native);
-	Function(String name, List<ValueType>* parameterTypes, ValueType returnType, Code* code);
-	Function(String name, List<ValueType>* parameterTypes, ValueType returnType, FunctionHandler native);
+	Function(String name, List<ValueType>* parameterTypes,
+			ValueType returnType, Code* code, FunctionHandler native);
+	Function(String name, List<ValueType>* parameterTypes,
+			ValueType returnType, Code* code);
+	Function(String name, List<ValueType>* parameterTypes,
+			ValueType returnType, FunctionHandler native);
 	~Function();
 };
 

@@ -5,8 +5,8 @@
  *      Author: chris13524
  */
 
-#ifndef INCLUDE_SCHEDULER_H_
-#define INCLUDE_SCHEDULER_H_
+#ifndef INCLUDE_SCHEDULE_H_
+#define INCLUDE_SCHEDULE_H_
 
 #include <mish.h>
 #include <thread.h>
@@ -28,4 +28,4 @@ void spawn(Thread* thread);
 }
 
 
-#endif /* INCLUDE_SCHEDULER_H_ */
+#endif /* INCLUDE_SCHEDULE_H_ */

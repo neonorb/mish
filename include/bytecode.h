@@ -9,29 +9,29 @@
 #define INCLUDE_BYTECODE_H_
 
 class Bytecode;
-class FunctionCallVoid;
+class FunctionCallBytecode;
 class IfConditionCode;
 class IfBytecode;
 class WhileBytecode;
 
-#include <mish.h>
-
-enum class BytecodeType {
-	FUNC_CALL, IF, WHILE
-};
+#include <list.h>
+#include <expression.h>
 
 class Bytecode {
 public:
-	BytecodeType type;
-
-	Bytecode(BytecodeType instruction);
+	enum class Type {
+		FUNC_CALL, IF, WHILE
+	};
+	Bytecode(Type instruction);
 	virtual ~Bytecode();
+
+	Type type;
 };
 
-class FunctionCallVoid: public Bytecode {
+class FunctionCallBytecode: public Bytecode {
 public:
-	FunctionCallVoid(Function* function, List<Expression*>* arguments);
-	~FunctionCallVoid();
+	FunctionCallBytecode(Function* function, List<Expression*>* arguments);
+	~FunctionCallBytecode();
 
 	Function* function;
 	List<Expression*>* arguments;

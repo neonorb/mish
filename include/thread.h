@@ -12,8 +12,6 @@ class Thread;
 
 #include <mish.h>
 
-typedef void (*OnThreadExit)(Thread*);
-
 enum ThreadPriority {
 	BACKGROUND, // will pause between executions
 	ACTIVE, // will not pause between executions
@@ -25,10 +23,10 @@ public:
 	~Thread();
 
 	Code* code;
-	mish::execute::ExecuterState* state;
+	mish::execute::State* state;
 	ThreadPriority priority;
 
-	OnThreadExit onThreadExit;
+	Callback<void(Thread*)> onThreadExit;
 };
 
 #endif /* INCLUDE_THREAD_H_ */
