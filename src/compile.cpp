@@ -77,6 +77,7 @@ BodyStackFrame::BodyStackFrame(Callback<Status(Code*)> codeCallback) :
 	this->codeCallback = codeCallback;
 	lastWasTerminated = true;
 	symbol1 = NULL;
+	isTop = false;
 }
 
 BodyStackFrame::~BodyStackFrame() {
@@ -102,7 +103,11 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (c == '#') {
 			startFrame(new CommentStackFrame(CommentStackFrame::Type::LINE));
 		} else if (c == EOF) {
-			return Status::OK;
+			if (isTop) {
+				return Status::OK;
+			} else {
+				return Status::ERROR("block must be closed");
+			}
 		} else {
 			return Status::ERROR("unexpected character in body");
 		}
@@ -112,6 +117,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (c == '(') {
 			if (strequ(symbol1, "while")) {
 				// while
+				symbol1 = NULL;
 				delete symbol1;
 
 				startFrame(
@@ -119,6 +125,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 								BIND_MEM_CB((Status(BodyStackFrame::*)(WhileBytecode*))&BodyStackFrame::bytecodeCallback, this)));
 			} else if (strequ(symbol1, "dowhile")) {
 				// dowhile
+				symbol1 = NULL;
 				delete symbol1;
 
 				startFrame(
@@ -126,6 +133,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 								BIND_MEM_CB((Status (BodyStackFrame::*)(WhileBytecode*))&BodyStackFrame::bytecodeCallback, this)));
 			} else if (strequ(symbol1, "if")) {
 				// if
+				symbol1 = NULL;
 				delete symbol1;
 
 				startFrame(
@@ -133,6 +141,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 								BIND_MEM_CB((Status (BodyStackFrame::*) (IfBytecode*))&BodyStackFrame::bytecodeCallback, this)));
 			} else if (strequ(symbol1, "elseif")) {
 				// elseif
+				symbol1 = NULL;
 				delete symbol1;
 
 				Bytecode* lastBytecode = code->bytecodes->getLast();
@@ -156,9 +165,12 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (c == '{') {
 			if (strequ(symbol1, "else")) {
 				// else
+				symbol1 = NULL;
 				delete symbol1;
 
-				Bytecode* lastBytecode = code->bytecodes->getLast();
+				Bytecode* lastBytecode =
+						code->bytecodes->size() == 0 ?
+								NULL : code->bytecodes->getLast();
 
 				if (lastBytecode != NULL
 						&& lastBytecode->type == Bytecode::Type::IF) {
@@ -678,6 +690,7 @@ Code* compile(String sourceCode, size size) {
 	State* state = new State();
 	BodyStackFrame* firstFrame = new BodyStackFrame( { });
 	firstFrame->state = state;
+	firstFrame->isTop = true;
 	state->compilerStack->push(firstFrame);
 
 	// line stuff

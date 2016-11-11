@@ -104,6 +104,7 @@ public:
 	bool lastWasTerminated;
 	Callback<Status(Code*)> codeCallback;
 	String symbol1;
+	bool isTop;
 };
 
 // ==== IfStackFrame ====
