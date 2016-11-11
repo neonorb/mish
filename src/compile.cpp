@@ -117,32 +117,32 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (c == '(') {
 			if (strequ(symbol1, "while")) {
 				// while
-				symbol1 = NULL;
 				delete symbol1;
+				symbol1 = NULL;
 
 				startFrame(
 						new WhileStackFrame(false,
 								BIND_MEM_CB((Status(BodyStackFrame::*)(WhileBytecode*))&BodyStackFrame::bytecodeCallback, this)));
 			} else if (strequ(symbol1, "dowhile")) {
 				// dowhile
-				symbol1 = NULL;
 				delete symbol1;
+				symbol1 = NULL;
 
 				startFrame(
 						new WhileStackFrame(true,
 								BIND_MEM_CB((Status (BodyStackFrame::*)(WhileBytecode*))&BodyStackFrame::bytecodeCallback, this)));
 			} else if (strequ(symbol1, "if")) {
 				// if
-				symbol1 = NULL;
 				delete symbol1;
+				symbol1 = NULL;
 
 				startFrame(
 						new IfStackFrame(
 								BIND_MEM_CB((Status (BodyStackFrame::*) (IfBytecode*))&BodyStackFrame::bytecodeCallback, this)));
 			} else if (strequ(symbol1, "elseif")) {
 				// elseif
-				symbol1 = NULL;
 				delete symbol1;
+				symbol1 = NULL;
 
 				Bytecode* lastBytecode = code->bytecodes->getLast();
 
@@ -165,8 +165,8 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (c == '{') {
 			if (strequ(symbol1, "else")) {
 				// else
-				symbol1 = NULL;
 				delete symbol1;
+				symbol1 = NULL;
 
 				Bytecode* lastBytecode =
 						code->bytecodes->size() == 0 ?
