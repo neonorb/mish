@@ -73,6 +73,7 @@ public:
 	StackFrame(Type type);
 	virtual ~StackFrame();
 
+	virtual void init();
 	virtual Status processCharacter(strchar c);
 
 	void startFrame(StackFrame* frame);
@@ -89,7 +90,7 @@ public:
 class BodyStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		READY
+		READY, SYMBOL1
 	};
 	BodyStackFrame(Callback<Status(Code*)> callback);
 	~BodyStackFrame();
@@ -102,13 +103,14 @@ public:
 	Code* code;
 	bool lastWasTerminated;
 	Callback<Status(Code*)> codeCallback;
+	String symbol1;
 };
 
 // ==== IfStackFrame ====
 class IfStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		EXPECT_P, EXPECT_BODY
+		EXPECT_BODY
 	};
 	enum class Type {
 		IF, ELSEIF, ELSE
@@ -120,6 +122,7 @@ public:
 	IfStackFrame(Type type, IfBytecode* ifBytecode);
 	~IfStackFrame();
 
+	void init();
 	Status processCharacter(strchar c);
 	Status conditionCallback(List<Expression*>* condition);
 	Status codeCallback(Code* code);
@@ -135,12 +138,13 @@ public:
 class WhileStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		EXPECT_P, EXPECT_BODY
+		EXPECT_BODY
 	};
 	WhileStackFrame(bool isDoWhile,
 			Callback<Status(WhileBytecode*)> whileBytecodeCallback);
 	~WhileStackFrame();
 
+	void init();
 	Status processCharacter(strchar c);
 	Status conditionCallback(List<Expression*>* condition);
 	Status codeCallback(Code* code);
@@ -194,7 +198,7 @@ public:
 class FunctionCallStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		EXPECT_P, ARGUMENTS
+		INVALID
 	};
 	enum class Type {
 		BYTECODE, EXPRESSION
@@ -208,7 +212,7 @@ public:
 			Callback<Status(FunctionCallExpression*)> functionCallExpressionCallback);
 	~FunctionCallStackFrame();
 
-	Status processCharacter(strchar c);
+	void init();
 	Status argumentsCallback(List<Expression*>* expression);
 
 	Type type;
@@ -237,6 +241,7 @@ public:
 	bool hasParenthesis;
 	Callback<Status(Expression*)> expressionCallback;
 	Mode mode;
+	String symbol1;
 };
 
 // ==== ArgumentsStackFrame ====
@@ -266,9 +271,9 @@ template<typename ... Args>
 Status StackFrame::callbackAndEndFrame(Callback<Status(Args...)> callback,
 		Args ... args) {
 	StackFrame* stackFrame = state->compilerStack->pop();
-	callback(args...);
+	Status status = callback(args...);
 	delete stackFrame;
-	return Status::OK;
+	return status;
 }
 
 Code* compile(String code);
