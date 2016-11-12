@@ -52,7 +52,7 @@ public:
 	}
 
 	inline bool operator!=(Status other) {
-		return !other.operator==(*this);
+		return !operator==(other);
 	}
 };
 
@@ -90,20 +90,22 @@ public:
 class BodyStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		READY, SYMBOL1
+		READY, SYMBOL1, SYMBOL2
 	};
 	BodyStackFrame(Callback<Status(Code*)> callback);
 	~BodyStackFrame();
 
 	Status processCharacter(strchar c);
 	Status bytecodeCallback(Bytecode* bytecode);
-	Status symbolCallback(String symbol);
+	Status symbol1Callback(String symbol);
+	Status symbol2Callback(String symbol);
 
 	Mode mode;
 	Code* code;
 	bool lastWasTerminated;
 	Callback<Status(Code*)> codeCallback;
 	String symbol1;
+	String symbol2;
 	bool isTop;
 };
 

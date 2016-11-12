@@ -10,8 +10,7 @@
 
 class Scope;
 
-#include <list.h>
-#include <function.h>
+#include <mish.h>
 
 using namespace feta;
 
@@ -23,7 +22,8 @@ public:
 	Scope* parent;
 
 	List<Function*> functions;
-	// TODO classes
+	List<Class*> classes;
+	List<VariableDefinition*> variables;
 };
 
 #endif /* INCLUDE_SCOPE_H_ */

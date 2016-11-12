@@ -2,7 +2,7 @@
 
 NAME=mish
 
-CSOURCES=bytecode expression mish compile execute schedule code function scope thread mishtest
+CSOURCES=bytecode state mish compile execute schedule code function scope thread mishtest
 ASOURCES=
 
 LIBS=feta

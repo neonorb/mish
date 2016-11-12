@@ -77,12 +77,16 @@ BodyStackFrame::BodyStackFrame(Callback<Status(Code*)> codeCallback) :
 	this->codeCallback = codeCallback;
 	lastWasTerminated = true;
 	symbol1 = NULL;
+	symbol2 = NULL;
 	isTop = false;
 }
 
 BodyStackFrame::~BodyStackFrame() {
 	if (symbol1 != NULL) {
 		delete symbol1;
+	}
+	if (symbol2 != NULL) {
+		delete symbol2;
 	}
 }
 
@@ -98,7 +102,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (isValidSymbolChar(c)) {
 			// begin a symbol
 			startFrame(new SymbolStackFrame(
-			BIND_MEM_CB(&BodyStackFrame::symbolCallback, this)));
+			BIND_MEM_CB(&BodyStackFrame::symbol1Callback, this)));
 			return Status::REPROCESS;
 		} else if (c == '#') {
 			startFrame(new CommentStackFrame(CommentStackFrame::Type::LINE));
@@ -114,6 +118,11 @@ Status BodyStackFrame::processCharacter(strchar c) {
 	} else if (mode == Mode::SYMBOL1) {
 		if (isWhitespace(c)) {
 			return Status::OK;
+		} else if (isValidSymbolChar(c)) {
+			startFrame(new SymbolStackFrame(
+			BIND_MEM_CB(&BodyStackFrame::symbol2Callback, this)));
+			mode = Mode::SYMBOL2;
+			return Status::REPROCESS;
 		} else if (c == '(') {
 			if (strequ(symbol1, "while")) {
 				// while
@@ -205,10 +214,53 @@ Status BodyStackFrame::bytecodeCallback(Bytecode* bytecode) {
 	return Status::OK;
 }
 
-Status BodyStackFrame::symbolCallback(String symbol) {
+Status BodyStackFrame::symbol1Callback(String symbol) {
 	this->symbol1 = symbol;
-
 	mode = Mode::SYMBOL1;
+	return Status::OK;
+}
+
+Status BodyStackFrame::symbol2Callback(String symbol) {
+	ValueType valueType = ValueType::UNKNOWN;
+	if (strequ(symbol1, "void")) {
+		valueType = ValueType::VOID;
+		delete symbol1;
+		symbol1 = NULL;
+	} else if (strequ(symbol1, "__boolean")) {
+		valueType = ValueType::BOOLEAN;
+		delete symbol1;
+		symbol1 = NULL;
+	} else if (strequ(symbol1, "__string")) {
+		valueType = ValueType::STRING;
+		delete symbol1;
+		symbol1 = NULL;
+	} else {
+		// search for class
+		Iterator<Class*> classIterator = mish_classes.iterator();
+		Class* clazz;
+		bool found = false;
+		while (classIterator.hasNext()) {
+			clazz = classIterator.next();
+			if (strequ(symbol1, clazz->name)) {
+				found = true;
+				break;
+			}
+		}
+
+		// found class
+		delete symbol1;
+		symbol1 = NULL;
+
+		// check if exists
+		if (!found) {
+			return Status::ERROR("type not defined");
+		}
+
+		// it exists, set value type
+		valueType = ValueType::CLASS(clazz);
+	}
+
+	code->scope->variables.add(new VariableDefinition(valueType, symbol));
 	return Status::OK;
 }
 

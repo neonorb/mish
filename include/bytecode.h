@@ -14,8 +14,7 @@ class IfConditionCode;
 class IfBytecode;
 class WhileBytecode;
 
-#include <list.h>
-#include <expression.h>
+#include <state.h>
 
 class Bytecode {
 public:
