@@ -17,6 +17,11 @@ ValueType::ValueType(Class* clazz) :
 	this->clazz = clazz;
 }
 
+ValueType::ValueType() {
+	type = Type::UNKNOWN;
+	clazz = NULL;
+}
+
 const ValueType ValueType::UNKNOWN = ValueType(Type::UNKNOWN);
 const ValueType ValueType::VOID = ValueType(Type::VOID);
 const ValueType ValueType::BOOLEAN = ValueType(Type::BOOLEAN);
@@ -43,6 +48,26 @@ Class::Class(String name, List<VariableDefinition>* variableDefinitions) {
 Class::~Class() {
 	delete name;
 	delete variableDefinitions;
+}
+
+// ==== variable ====
+
+Variable::Variable(VariableDefinition* definition, Value* value) {
+	this->definition = definition;
+	this->value = value;
+	value->createReference();
+}
+
+Variable::~Variable() {
+	value->deleteReference();
+}
+
+void Variable::setValue(Value* value) {
+	value->createReference();
+	this->value->deleteReference();
+	this->value = value;
+
+	// TODO trigger events
 }
 
 // ==== expression ====

@@ -77,16 +77,14 @@ BodyStackFrame::BodyStackFrame(Callback<Status(Code*)> codeCallback) :
 	this->codeCallback = codeCallback;
 	lastWasTerminated = true;
 	symbol1 = NULL;
-	symbol2 = NULL;
 	isTop = false;
+	justAddedVariable = false;
+	variableToSet = NULL;
 }
 
 BodyStackFrame::~BodyStackFrame() {
 	if (symbol1 != NULL) {
 		delete symbol1;
-	}
-	if (symbol2 != NULL) {
-		delete symbol2;
 	}
 }
 
@@ -106,6 +104,10 @@ Status BodyStackFrame::processCharacter(strchar c) {
 			return Status::REPROCESS;
 		} else if (c == '#') {
 			startFrame(new CommentStackFrame(CommentStackFrame::Type::LINE));
+		} else if (c == '=' && justAddedVariable) {
+			variableToSet = code->scope->variables->getLast();
+			startFrame(new ExpressionStackFrame(false,
+			BIND_MEM_CB(&BodyStackFrame::variableSetCallback, this)));
 		} else if (c == EOF) {
 			if (isTop) {
 				return Status::OK;
@@ -121,8 +123,9 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		} else if (isValidSymbolChar(c)) {
 			startFrame(new SymbolStackFrame(
 			BIND_MEM_CB(&BodyStackFrame::symbol2Callback, this)));
-			mode = Mode::SYMBOL2;
 			return Status::REPROCESS;
+		} else if (c == '=') {
+			// TODO
 		} else if (c == '(') {
 			if (strequ(symbol1, "while")) {
 				// while
@@ -211,6 +214,7 @@ Status BodyStackFrame::bytecodeCallback(Bytecode* bytecode) {
 	}
 	code->bytecodes->add(bytecode);
 	lastWasTerminated = false;
+	justAddedVariable = false;
 	return Status::OK;
 }
 
@@ -222,15 +226,15 @@ Status BodyStackFrame::symbol1Callback(String symbol) {
 
 Status BodyStackFrame::symbol2Callback(String symbol) {
 	ValueType valueType = ValueType::UNKNOWN;
-	if (strequ(symbol1, "void")) {
+	if (strequ(symbol1, "__Void")) {
 		valueType = ValueType::VOID;
 		delete symbol1;
 		symbol1 = NULL;
-	} else if (strequ(symbol1, "__boolean")) {
+	} else if (strequ(symbol1, "__Boolean")) {
 		valueType = ValueType::BOOLEAN;
 		delete symbol1;
 		symbol1 = NULL;
-	} else if (strequ(symbol1, "__string")) {
+	} else if (strequ(symbol1, "__String")) {
 		valueType = ValueType::STRING;
 		delete symbol1;
 		symbol1 = NULL;
@@ -260,7 +264,27 @@ Status BodyStackFrame::symbol2Callback(String symbol) {
 		valueType = ValueType::CLASS(clazz);
 	}
 
-	code->scope->variables.add(new VariableDefinition(valueType, symbol));
+	Iterator<VariableDefinition*> existingVariables =
+			code->scope->variables->iterator();
+	while (existingVariables.hasNext()) {
+		VariableDefinition* variable = existingVariables.next();
+		if (strequ(variable->name, symbol)) {
+			return Status::ERROR(
+					"variable with same name already exists in this scope");
+		}
+	}
+
+	code->scope->variables->add(new VariableDefinition(valueType, symbol));
+	justAddedVariable = true;
+	mode = Mode::READY;
+	return Status::OK;
+}
+
+Status BodyStackFrame::variableSetCallback(Expression* value) {
+	if (variableToSet == NULL) {
+		crash("variable to set is null");
+	}
+	bytecodeCallback(new SetVariableBytecode(variableToSet, value));
 	return Status::OK;
 }
 
@@ -811,8 +835,8 @@ Code* compile(String sourceCode, size size) {
 			lineEnd = i;
 		}
 
-		debug("lineStart", lineStart);
-		debug("lineEnd", lineEnd);
+		//debug("lineStart", lineStart);
+		//debug("lineEnd", lineEnd);
 
 		// generate the error message and display it
 		String line = substring(sourceCode, lineStart, lineEnd);

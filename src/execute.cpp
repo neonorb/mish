@@ -25,6 +25,9 @@ StackFrame::~StackFrame() {
 
 }
 
+void StackFrame::init() {
+}
+
 Status StackFrame::execute() {
 	return Status::OK;
 }
@@ -32,6 +35,7 @@ Status StackFrame::execute() {
 void StackFrame::startFrame(StackFrame* frame) {
 	frame->state = state;
 	state->executionStack->push(frame);
+	frame->init();
 }
 
 Status StackFrame::endFrame() {
@@ -84,7 +88,8 @@ Status BytecodeStackFrame::execute() {
 	if (bytecodesIterator->hasNext()) {
 		Bytecode* bytecode = bytecodesIterator->next();
 		if (bytecode->type == Bytecode::Type::FUNC_CALL) {
-			FunctionCallBytecode* functionCallVoid = (FunctionCallBytecode*) bytecode;
+			FunctionCallBytecode* functionCallVoid =
+					(FunctionCallBytecode*) bytecode;
 
 			startFrame(
 					new FunctionCallStackFrame(functionCallVoid->function,
@@ -98,6 +103,10 @@ Status BytecodeStackFrame::execute() {
 			startFrame(
 					new WhileStackFrame(whileBytecode->condition,
 							whileBytecode->code, whileBytecode->isDoWhile));
+		} else if (bytecode->type == Bytecode::Type::SET_VARIABLE) {
+			SetVariableBytecode* vBytecode = (SetVariableBytecode*) bytecode;
+			f// TODO make a create variable bytecode which creates the actual Variable
+			startFrame(new SetVariableStackFrame(vBytecode->variable, vBytecode->value));
 		} else {
 			crash("unknown BytecodeType");
 		}
@@ -313,6 +322,29 @@ Status WhileStackFrame::conditionEvaluationCallback(Value* value) {
 	value->createReference();
 
 	return Status::OK;
+}
+
+// SetVariableStackFrame
+SetVariableStackFrame::SetVariableStackFrame(Variable* variable,
+		Expression* value) :
+		StackFrame(Type::SET_VARIABLE) {
+	this->variable = variable;
+	this->value = value;
+}
+
+void SetVariableStackFrame::init() {
+	evaluateExpression(value,
+	BIND_MEM_CB(&SetVariableStackFrame::valueEvaluationCallback, this));
+}
+
+Status SetVariableStackFrame::execute() {
+	NIMPL;
+	return Status::OK;
+}
+
+Status SetVariableStackFrame::valueEvaluationCallback(Value* value) {
+	variable->setValue(value);
+	return endFrame();
 }
 
 // ExecuterState

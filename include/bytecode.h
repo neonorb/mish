@@ -19,7 +19,7 @@ class WhileBytecode;
 class Bytecode {
 public:
 	enum class Type {
-		FUNC_CALL, IF, WHILE
+		FUNC_CALL, IF, WHILE, SET_VARIABLE
 	};
 	Bytecode(Type instruction);
 	virtual ~Bytecode();
@@ -62,6 +62,16 @@ public:
 
 	WhileBytecode(Expression* condition, Code* code, bool isDoWhile);
 	~WhileBytecode();
+};
+
+// set variable
+class SetVariableBytecode: public Bytecode {
+public:
+	SetVariableBytecode(VariableDefinition* variable, Expression* value);
+	~SetVariableBytecode();
+
+	VariableDefinition* variable;
+	Expression* value;
 };
 
 #endif /* INCLUDE_BYTECODE_H_ */

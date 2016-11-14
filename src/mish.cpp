@@ -8,3 +8,4 @@
 #include <mish.h>
 
 List<Function*> mish_syscalls;
+List<Class*> mish_classes;

@@ -33,11 +33,12 @@ enum class Status {
 class StackFrame {
 public:
 	enum class Type {
-		BYTECODE, FUNCTION_CALL, ARGUMENT, IF, WHILE
+		BYTECODE, FUNCTION_CALL, ARGUMENT, IF, WHILE, SET_VARIABLE
 	};
 	StackFrame(Type type);
 	virtual ~StackFrame();
 
+	virtual void init();
 	virtual Status execute();
 
 	void startFrame(StackFrame* frame);
@@ -135,6 +136,19 @@ public:
 	Code* code;
 
 	Value* lastEvaluation;
+};
+
+// ==== SetVariableStackFrame ====
+class SetVariableStackFrame: public StackFrame {
+public:
+	SetVariableStackFrame(Variable* variable, Expression* value);
+
+	void init();
+	Status execute();
+	Status valueEvaluationCallback(Value* value);
+
+	Variable* variable;
+	Expression* value;
 };
 
 // ==== State ====

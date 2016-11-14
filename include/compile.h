@@ -90,7 +90,7 @@ public:
 class BodyStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		READY, SYMBOL1, SYMBOL2
+		READY, SYMBOL1
 	};
 	BodyStackFrame(Callback<Status(Code*)> callback);
 	~BodyStackFrame();
@@ -99,14 +99,16 @@ public:
 	Status bytecodeCallback(Bytecode* bytecode);
 	Status symbol1Callback(String symbol);
 	Status symbol2Callback(String symbol);
+	Status variableSetCallback(Expression* value);
 
 	Mode mode;
 	Code* code;
 	bool lastWasTerminated;
 	Callback<Status(Code*)> codeCallback;
 	String symbol1;
-	String symbol2;
 	bool isTop;
+	bool justAddedVariable;
+	VariableDefinition* variableToSet;
 };
 
 // ==== IfStackFrame ====

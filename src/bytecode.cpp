@@ -15,6 +15,7 @@ Bytecode::Bytecode(Type instruction) {
 Bytecode::~Bytecode() {
 }
 
+// function call
 FunctionCallBytecode::FunctionCallBytecode(Function* function,
 		List<Expression*>* arguments) :
 		Bytecode(Type::FUNC_CALL) {
@@ -31,7 +32,7 @@ FunctionCallBytecode::~FunctionCallBytecode() {
 	delete arguments;
 }
 
-// IfConditionCode
+// if condition
 IfConditionCode::IfConditionCode(Expression* condition, Code* code) {
 	this->condition = condition;
 	this->code = code;
@@ -42,7 +43,7 @@ IfConditionCode::~IfConditionCode() {
 	delete code;
 }
 
-// IfBytecode
+// if
 IfBytecode::IfBytecode() :
 		Bytecode(Type::IF) {
 	ifs = new List<IfConditionCode*>();
@@ -61,7 +62,7 @@ IfBytecode::~IfBytecode() {
 	delete ifs;
 }
 
-// WhileBytecode
+// while
 WhileBytecode::WhileBytecode(Expression* condition, Code* code, bool isDoWhile) :
 		Bytecode(Type::WHILE) {
 	this->condition = condition;
@@ -72,4 +73,15 @@ WhileBytecode::WhileBytecode(Expression* condition, Code* code, bool isDoWhile) 
 WhileBytecode::~WhileBytecode() {
 	delete condition;
 	delete code;
+}
+
+// set variable
+SetVariableBytecode::SetVariableBytecode(VariableDefinition* variable, Expression* value) :
+		Bytecode(Type::SET_VARIABLE) {
+	this->variable = variable;
+	this->value = value;
+}
+
+SetVariableBytecode::~SetVariableBytecode() {
+	delete value;
 }

@@ -21,9 +21,9 @@ public:
 
 	Scope* parent;
 
-	List<Function*> functions;
-	List<Class*> classes;
-	List<VariableDefinition*> variables;
+	List<Function*>* functions;
+	List<Class*>* classes;
+	List<VariableDefinition*>* variables;
 };
 
 #endif /* INCLUDE_SCOPE_H_ */

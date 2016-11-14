@@ -26,6 +26,7 @@ class ValueType {
 	ValueType(Type type);
 	ValueType(Class* clazz);
 public:
+	ValueType();
 	static const ValueType UNKNOWN;
 	static const ValueType VOID;
 	static const ValueType BOOLEAN;
@@ -43,7 +44,7 @@ public:
 			if (type == Type::CLASS) {
 				return clazz == other.clazz;
 			} else {
-				return false;
+				return true;
 			}
 		} else {
 			return false;
@@ -76,6 +77,11 @@ public:
 class Value;
 class Variable {
 public:
+	Variable(VariableDefinition* definition, Value* value);
+	~Variable();
+
+	void setValue(Value* value);
+
 	VariableDefinition* definition;
 	Value* value;
 };
