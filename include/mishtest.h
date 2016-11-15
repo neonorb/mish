@@ -131,6 +131,16 @@ if (x) {\n\
 	__triggerFlag1()\n\
 }"
 
+#define TEST20 \
+"__String x = '1'\n\
+x = '2'"
+
+#define TEST21 \
+"__String x = '1'\n\
+__String y = x\n\
+x = '2'\n\
+y = '2'"
+
 // ---- end tests ----
 
 }

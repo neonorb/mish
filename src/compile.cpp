@@ -148,7 +148,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 			delete symbol1;
 			symbol1 = NULL;
 
-			if(variableToSet == NULL) {
+			if (variableToSet == NULL) {
 				return Status::ERROR("could not find variable");
 			}
 
@@ -238,7 +238,8 @@ Status BodyStackFrame::processCharacter(strchar c) {
 
 Status BodyStackFrame::bytecodeCallback(Bytecode * bytecode) {
 	if (!lastWasTerminated) {
-		return Status::ERROR("last statement wasn't terminated");
+		// termination check isn't required
+		//return Status::ERROR("last statement wasn't terminated");
 	}
 	code->bytecodes->add(bytecode);
 	lastWasTerminated = false;
@@ -377,7 +378,7 @@ Status IfStackFrame::conditionCallback(List<Expression*>* condition) {
 	}
 }
 
-Status IfStackFrame::codeCallback(Code * code) {
+Status IfStackFrame::codeCallback(Code* code) {
 	IfConditionCode* ifConditionCode = new IfConditionCode(condition, code);
 	condition = NULL; // don't delete
 	if (type == Type::IF) {
@@ -440,7 +441,7 @@ Status WhileStackFrame::conditionCallback(List<Expression*>* condition) {
 	}
 }
 
-Status WhileStackFrame::codeCallback(Code * code) {
+Status WhileStackFrame::codeCallback(Code* code) {
 	WhileBytecode* bytecode = new WhileBytecode(condition, code, isDoWhile);
 	condition = NULL;
 	return callbackAndEndFrame(whileBytecodeCallback, bytecode);
@@ -648,11 +649,16 @@ ExpressionStackFrame::ExpressionStackFrame(bool hasParenthesis,
 	this->expressionCallback = expressionCallback;
 	mode = Mode::READY;
 	symbol1 = NULL;
+	expression = NULL;
 }
 
 ExpressionStackFrame::~ExpressionStackFrame() {
 	if (symbol1 != NULL) {
 		delete symbol1;
+	}
+
+	if (expression != NULL) {
+		delete expression;
 	}
 }
 
@@ -667,46 +673,46 @@ Status ExpressionStackFrame::processCharacter(strchar c) {
 			BIND_MEM_CB(&ExpressionStackFrame::symbolCallback, this)));
 			return Status::REPROCESS;
 		} else if (c == '(') {
-			if (symbol1 != NULL) {
-				startFrame(new FunctionCallStackFrame(symbol1,
-				BIND_MEM_CB(&ExpressionStackFrame::functionCallback, this)));
-				symbol1 = NULL;
-			} else {
-				return Status::ERROR(
-						"parenthesis in expression not implemented yet");
-				startFrame(
-						new ExpressionStackFrame(true,
-								BIND_MEM_CB(&ExpressionStackFrame::subexpressionCallback, this)));
-			}
+			return Status::ERROR(
+					"parenthesis in expression not implemented yet");
+			startFrame(new ExpressionStackFrame(true,
+			BIND_MEM_CB(&ExpressionStackFrame::subexpressionCallback, this)));
 		} else {
-			if (c == ')') {
-				if (symbol1 != NULL) {
-					// variable
-					VariableDefinition* vDef = findVariable(symbol1);
-					delete symbol1;
-					symbol1 = NULL;
+			return Status::ERROR("unexpected character in expression");
+		}
+	} else if (mode == Mode::EXPECT_OPERATOR) {
+		if (false) {
+			// TODO operators
+		} else if (c == '(') {
+			startFrame(new FunctionCallStackFrame(symbol1,
+			BIND_MEM_CB(&ExpressionStackFrame::functionCallback, this)));
+			symbol1 = NULL;
+		} else { // terminate expression
+			if (symbol1 != NULL) {
+				// variable
+				VariableDefinition* vDef = findVariable(symbol1);
+				delete symbol1;
+				symbol1 = NULL;
 
-					if (vDef == NULL) {
-						return Status::ERROR("could not find variable");
-					}
-
-					VariableExpression* vExpression = new VariableExpression(
-							vDef);
-					Status status = expressionCallback(vExpression);
-					if (status != Status::OK) {
-						return status;
-					}
+				if (vDef == NULL) {
+					return Status::ERROR("could not find variable");
 				}
 
-				bool hasParenthesis = this->hasParenthesis;
-				endFrame();
-				if (!hasParenthesis) {
-					return Status::REPROCESS;
-				}
-			} else {
-				return Status::ERROR(
-						"unexpected character while parsing expression");
+				expression = new VariableExpression(vDef);
 			}
+
+			// callback expression
+			bool hasParenthesis = this->hasParenthesis;
+			Expression* expression = this->expression;
+			this->expression = NULL;
+			Status status = callbackAndEndFrame(expressionCallback, expression);
+			if (status != Status::OK) {
+				return status;
+			}
+			if (hasParenthesis && c == ')') {
+				return Status::OK;
+			}
+			return Status::REPROCESS;
 		}
 	} else {
 		crash("unknown ExpressionStackFrameMode");
@@ -716,35 +722,39 @@ Status ExpressionStackFrame::processCharacter(strchar c) {
 }
 
 Status ExpressionStackFrame::stringCallback(String string) {
-	Expression* expression = (Expression*) new StringValue(string, true);
+	expression = (Expression*) new StringValue(string, true);
 	string = NULL;
-	return callbackAndEndFrame(expressionCallback, expression);
+	mode = Mode::EXPECT_OPERATOR;
+	return Status::OK;
 }
 
 Status ExpressionStackFrame::symbolCallback(String symbol) {
 	if (strequ(symbol, "true")) {
 		delete symbol;
-		return callbackAndEndFrame(expressionCallback,
-				(Expression*) new BooleanValue(true, true));
+		expression = new BooleanValue(true, true);
 	} else if (strequ(symbol, "false")) {
 		delete symbol;
-		return callbackAndEndFrame(expressionCallback,
-				(Expression*) new BooleanValue(false, true));
+		expression = new BooleanValue(false, true);
 	} else {
 		symbol1 = symbol;
-		return Status::OK;
 	}
+
+	mode = Mode::EXPECT_OPERATOR;
+	return Status::OK;
 }
 
 Status ExpressionStackFrame::subexpressionCallback(Expression * expression) {
 	CUNUSED(expression);
 	NIMPL;
+	mode = Mode::EXPECT_OPERATOR;
 	return Status::OK;
 }
 
 Status ExpressionStackFrame::functionCallback(
 		FunctionCallExpression * funcCall) {
-	return callbackAndEndFrame(expressionCallback, (Expression*) funcCall);
+	expression = funcCall;
+	mode = Mode::EXPECT_OPERATOR;
+	return Status::OK;
 }
 
 // ArgumentCompilerStackFrame

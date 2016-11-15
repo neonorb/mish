@@ -234,7 +234,7 @@ public:
 class ExpressionStackFrame: public StackFrame {
 public:
 	enum class Mode {
-		READY
+		READY, EXPECT_OPERATOR
 	};
 	ExpressionStackFrame(bool hasParenthesis,
 			Callback<Status(Expression*)> expressionCallback);
@@ -250,6 +250,7 @@ public:
 	Callback<Status(Expression*)> expressionCallback;
 	Mode mode;
 	String symbol1;
+	Expression* expression;
 };
 
 // ==== ArgumentsStackFrame ====
