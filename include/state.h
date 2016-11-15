@@ -14,7 +14,7 @@
 using namespace feta;
 
 enum class ExpressionType {
-	VALUE, FUNCTION
+	VALUE, FUNCTION, VARIABLE
 };
 
 #undef VOID
@@ -58,11 +58,12 @@ public:
 
 class VariableDefinition {
 public:
-	VariableDefinition(ValueType type, String name);
+	VariableDefinition(ValueType type, String name, uinteger index);
 	~VariableDefinition();
 
 	ValueType type;
 	String name;
+	uinteger index;
 };
 
 class Class {
@@ -105,6 +106,13 @@ public:
 
 	Function* function;
 	List<Expression*>* arguments;
+};
+
+class VariableExpression: public Expression {
+public:
+	VariableExpression(VariableDefinition* definition);
+
+	VariableDefinition* definition;
 };
 
 // ==== value ====

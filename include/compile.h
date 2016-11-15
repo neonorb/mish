@@ -81,9 +81,11 @@ public:
 	Status callbackAndEndFrame(Callback<Status(Args...)> callback,
 			Args ... args);
 	Status endFrame();
+	VariableDefinition* findVariable(String name);
 
 	Type type;
 	State* state;
+	Scope* scope;
 };
 
 // ==== BodyStackFrame ====
@@ -109,6 +111,7 @@ public:
 	bool isTop;
 	bool justAddedVariable;
 	VariableDefinition* variableToSet;
+	uinteger variableIndex;
 };
 
 // ==== IfStackFrame ====

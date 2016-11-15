@@ -106,6 +106,31 @@ __triggerFlag2()"
 	__triggerFlag1()\n\
 }"
 
+#define TEST15 \
+"__Boolean x"
+
+#define TEST16 \
+"__Boolean x = true"
+
+#define TEST17 \
+"__Boolean x = false\n\
+if (x) {\n\
+	__triggerFlag1()\n\
+}"
+
+#define TEST18 \
+"__Boolean x = true\n\
+if (x) {\n\
+	__triggerFlag1()\n\
+}"
+
+#define TEST19 \
+"__Boolean x = false\n\
+x = true\n\
+if (x) {\n\
+	__triggerFlag1()\n\
+}"
+
 // ---- end tests ----
 
 }

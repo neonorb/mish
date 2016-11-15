@@ -29,9 +29,11 @@ const ValueType ValueType::STRING = ValueType(Type::STRING);
 
 // ==== variable definition ====
 
-VariableDefinition::VariableDefinition(ValueType type, String name) {
+VariableDefinition::VariableDefinition(ValueType type, String name,
+		uinteger index) {
 	this->type = type;
 	this->name = name;
+	this->index = index;
 }
 
 VariableDefinition::~VariableDefinition() {
@@ -55,16 +57,25 @@ Class::~Class() {
 Variable::Variable(VariableDefinition* definition, Value* value) {
 	this->definition = definition;
 	this->value = value;
-	value->createReference();
+	if (value != NULL) {
+		value->createReference();
+	}
 }
 
 Variable::~Variable() {
-	value->deleteReference();
+	if (value != NULL) {
+		value->deleteReference();
+	}
 }
 
 void Variable::setValue(Value* value) {
-	value->createReference();
-	this->value->deleteReference();
+	// TODO runtime type checking
+	if (value != NULL) {
+		value->createReference();
+	}
+	if (this->value != NULL) {
+		this->value->deleteReference();
+	}
 	this->value = value;
 
 	// TODO trigger events
@@ -94,6 +105,11 @@ FunctionCallExpression::~FunctionCallExpression() {
 	}
 
 	delete arguments;
+}
+
+VariableExpression::VariableExpression(VariableDefinition* definition) :
+		Expression(definition->type, ExpressionType::VARIABLE) {
+	this->definition = definition;
 }
 
 // ==== value ====

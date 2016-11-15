@@ -11,8 +11,8 @@ Thread::Thread(Code* code, ThreadPriority priority) {
 	this->code = code;
 
 	state = new mish::execute::State();
-	mish::execute::BytecodeStackFrame* firstFrame =
-			new mish::execute::BytecodeStackFrame(code->bytecodes);
+	mish::execute::BodyStackFrame* firstFrame =
+			new mish::execute::BodyStackFrame(code);
 	firstFrame->state = state;
 	state->executionStack->push(firstFrame);
 

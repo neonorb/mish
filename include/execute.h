@@ -48,21 +48,24 @@ public:
 	Status endFrame();
 	void evaluateExpression(Expression* expression,
 			Callback<Status(Value*)> response);
+	Variable* getVariable(VariableDefinition* vDef);
 
 	Type type;
 	State* state;
+	Variable** variables;
 };
 
-// ==== BytecodeStackFrame ====
-class BytecodeStackFrame: public StackFrame {
+// ==== BodyStackFrame ====
+class BodyStackFrame: public StackFrame {
 public:
-	BytecodeStackFrame(List<Bytecode*>* bytecodesIterator);
-	~BytecodeStackFrame();
+	BodyStackFrame(Code* code);
+	~BodyStackFrame();
 
 	Status execute();
 	Status functionCallCallback(Value* ret);
 
 	Iterator<Bytecode*>* bytecodesIterator;
+	uinteger varCount;
 };
 
 // ==== FunctionCallStackFrame ====

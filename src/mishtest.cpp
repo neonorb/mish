@@ -181,6 +181,22 @@ namespace mishtest {
 		assert(flag1 == 2, "14");
 		resetFlags();
 
+		testMishCode(TEST15);
+
+		testMishCode(TEST16);
+
+		testMishCode(TEST17);
+		assert(flag1 == 0, "17");
+		resetFlags();
+
+		testMishCode(TEST18);
+		assert(flag1 == 1, "18");
+		resetFlags();
+
+		testMishCode(TEST19);
+		assert(flag1 == 1, "19");
+		resetFlags();
+
 		// ---- done tests ----
 
 		// unregister syscalls

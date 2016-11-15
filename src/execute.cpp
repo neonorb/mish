@@ -19,6 +19,7 @@ namespace execute {
 StackFrame::StackFrame(Type type) {
 	this->type = type;
 	state = NULL;
+	variables = NULL;
 }
 
 StackFrame::~StackFrame() {
@@ -34,6 +35,9 @@ Status StackFrame::execute() {
 
 void StackFrame::startFrame(StackFrame* frame) {
 	frame->state = state;
+	if (frame->type != Type::BYTECODE) {
+		frame->variables = variables;
+	}
 	state->executionStack->push(frame);
 	frame->init();
 }
@@ -56,35 +60,57 @@ void StackFrame::evaluateExpression(Expression* expression,
 		response(constant);
 	}
 		break;
-	case ExpressionType::FUNCTION:
+	case ExpressionType::FUNCTION: {
 		FunctionCallExpression* functionCallReturn =
 				(FunctionCallExpression*) expression;
 
 		startFrame(
 				new FunctionCallStackFrame(functionCallReturn->function,
 						functionCallReturn->arguments, response));
-
+	}
+		break;
+	case ExpressionType::VARIABLE: {
+		VariableExpression* variableExpression =
+				(VariableExpression*) expression;
+		response(variables[variableExpression->definition->index]->value);
+	}
 		break;
 	}
 }
 
-// BytecodeStackFrame
-BytecodeStackFrame::BytecodeStackFrame(List<Bytecode*>* bytecodes) :
+// BodyStackFrame
+BodyStackFrame::BodyStackFrame(Code* code) :
 		StackFrame(Type::BYTECODE) {
-	this->bytecodesIterator = new Iterator<Bytecode*>(bytecodes->iterator());
+	this->bytecodesIterator = new Iterator<Bytecode*>(
+			code->bytecodes->iterator());
+
+	List<VariableDefinition*>* vDefs = code->scope->variables;
+	variables = new Variable*[vDefs->size()];
+	varCount = vDefs->size();
+	Iterator<VariableDefinition*> vDefsIterator = vDefs->iterator();
+	uinteger index = 0;
+	while (vDefsIterator.hasNext()) {
+		VariableDefinition* vDef = vDefsIterator.next();
+		variables[index] = new Variable(vDef, NULL); // TODO needs value for reference tracking (currently checkfor for NULL, but later will not, maybe?)
+		index++;
+	}
 }
 
-BytecodeStackFrame::~BytecodeStackFrame() {
+BodyStackFrame::~BodyStackFrame() {
 	delete bytecodesIterator;
+	for (uinteger i = 0; i < varCount; i++) {
+		delete variables[i];
+	}
+	delete variables;
 }
 
-Status BytecodeStackFrame::functionCallCallback(Value* ret) {
+Status BodyStackFrame::functionCallCallback(Value* ret) {
 	/* discard the return value */
 	delete ret;
 	return Status::OK;
 }
 
-Status BytecodeStackFrame::execute() {
+Status BodyStackFrame::execute() {
 	if (bytecodesIterator->hasNext()) {
 		Bytecode* bytecode = bytecodesIterator->next();
 		if (bytecode->type == Bytecode::Type::FUNC_CALL) {
@@ -94,7 +120,7 @@ Status BytecodeStackFrame::execute() {
 			startFrame(
 					new FunctionCallStackFrame(functionCallVoid->function,
 							functionCallVoid->arguments,
-							BIND_MEM_CB(&BytecodeStackFrame::functionCallCallback, this)));
+							BIND_MEM_CB(&BodyStackFrame::functionCallCallback, this)));
 		} else if (bytecode->type == Bytecode::Type::IF) {
 			IfBytecode* ifBytecode = (IfBytecode*) bytecode;
 			startFrame(new IfStackFrame(ifBytecode->ifs));
@@ -105,8 +131,10 @@ Status BytecodeStackFrame::execute() {
 							whileBytecode->code, whileBytecode->isDoWhile));
 		} else if (bytecode->type == Bytecode::Type::SET_VARIABLE) {
 			SetVariableBytecode* vBytecode = (SetVariableBytecode*) bytecode;
-			f// TODO make a create variable bytecode which creates the actual Variable
-			startFrame(new SetVariableStackFrame(vBytecode->variable, vBytecode->value));
+			startFrame(
+					new SetVariableStackFrame(
+							variables[vBytecode->variable->index],
+							vBytecode->value));
 		} else {
 			crash("unknown BytecodeType");
 		}
@@ -157,7 +185,7 @@ Status FunctionCallStackFrame::execute() {
 			Value* returnValue = function->native(evaluations);
 			functionCallback(returnValue);
 		} else {
-			startFrame(new BytecodeStackFrame(function->code->bytecodes));
+			startFrame(new BodyStackFrame(function->code));
 			// TODO evaluate and call function
 			// TODO remember to create return reference
 			crash("regular functions not implemented yet");
@@ -243,8 +271,7 @@ Status IfStackFrame::execute() {
 	} else if (mode == Mode::RUN) {
 		// test was successful, run and be done
 		mode = Mode::DONE;
-		startFrame(
-				new BytecodeStackFrame(ifsIterator->next()->code->bytecodes));
+		startFrame(new BodyStackFrame(ifsIterator->next()->code));
 	} else if (mode == Mode::DONE) {
 		// previous call was successful, exit
 		return endFrame();
@@ -302,7 +329,7 @@ Status WhileStackFrame::execute() {
 			return endFrame();
 		}
 	} else if (mode == Mode::RUN) {
-		startFrame(new BytecodeStackFrame(code->bytecodes));
+		startFrame(new BodyStackFrame(code));
 		mode = Mode::EVALUATE;
 	} else {
 		crash("unknown WhileStackFrameMode");
@@ -370,7 +397,7 @@ void execute(Code* code) {
 
 	// start executing on first bytecode
 	// TODO change this so that execution can resume and exit after every cycle
-	BytecodeStackFrame* firstFrame = new BytecodeStackFrame(code->bytecodes);
+	BodyStackFrame* firstFrame = new BodyStackFrame(code);
 	firstFrame->state = state;
 	state->executionStack->push(firstFrame);
 

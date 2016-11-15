@@ -43,6 +43,7 @@ static bool isWhitespace(strchar c) {
 StackFrame::StackFrame(Type type) {
 	this->type = type;
 	state = NULL;
+	scope = NULL;
 }
 
 StackFrame::~StackFrame() {
@@ -52,6 +53,9 @@ StackFrame::~StackFrame() {
 void StackFrame::startFrame(StackFrame* frame) {
 	frame->state = state;
 	state->compilerStack->push(frame);
+	if (frame->type != Type::BODY) {
+		frame->scope = scope;
+	}
 	frame->init();
 }
 
@@ -69,17 +73,32 @@ Status StackFrame::processCharacter(strchar c) {
 	return Status::OK;
 }
 
+VariableDefinition* StackFrame::findVariable(String name) {
+	Iterator<VariableDefinition*> existingVariables =
+			scope->variables->iterator();
+	while (existingVariables.hasNext()) {
+		VariableDefinition* variable = existingVariables.next();
+		if (strequ(variable->name, name)) {
+			return variable;
+		}
+	}
+
+	return NULL;
+}
+
 // BodyStackFrame
 BodyStackFrame::BodyStackFrame(Callback<Status(Code*)> codeCallback) :
 		StackFrame(Type::BODY) {
 	mode = Mode::READY;
 	code = new Code();
+	scope = code->scope;
 	this->codeCallback = codeCallback;
 	lastWasTerminated = true;
 	symbol1 = NULL;
 	isTop = false;
 	justAddedVariable = false;
 	variableToSet = NULL;
+	variableIndex = 0;
 }
 
 BodyStackFrame::~BodyStackFrame() {
@@ -125,7 +144,16 @@ Status BodyStackFrame::processCharacter(strchar c) {
 			BIND_MEM_CB(&BodyStackFrame::symbol2Callback, this)));
 			return Status::REPROCESS;
 		} else if (c == '=') {
-			// TODO
+			variableToSet = findVariable(symbol1);
+			delete symbol1;
+			symbol1 = NULL;
+
+			if(variableToSet == NULL) {
+				return Status::ERROR("could not find variable");
+			}
+
+			startFrame(new ExpressionStackFrame(false,
+			BIND_MEM_CB(&BodyStackFrame::variableSetCallback, this)));
 		} else if (c == '(') {
 			if (strequ(symbol1, "while")) {
 				// while
@@ -208,7 +236,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 	return Status::OK;
 }
 
-Status BodyStackFrame::bytecodeCallback(Bytecode* bytecode) {
+Status BodyStackFrame::bytecodeCallback(Bytecode * bytecode) {
 	if (!lastWasTerminated) {
 		return Status::ERROR("last statement wasn't terminated");
 	}
@@ -264,23 +292,20 @@ Status BodyStackFrame::symbol2Callback(String symbol) {
 		valueType = ValueType::CLASS(clazz);
 	}
 
-	Iterator<VariableDefinition*> existingVariables =
-			code->scope->variables->iterator();
-	while (existingVariables.hasNext()) {
-		VariableDefinition* variable = existingVariables.next();
-		if (strequ(variable->name, symbol)) {
-			return Status::ERROR(
-					"variable with same name already exists in this scope");
-		}
+	if (findVariable(symbol) != NULL) {
+		return Status::ERROR(
+				"variable with same name already exists in this scope");
 	}
 
-	code->scope->variables->add(new VariableDefinition(valueType, symbol));
+	code->scope->variables->add(
+			new VariableDefinition(valueType, symbol, variableIndex));
+	variableIndex++;
 	justAddedVariable = true;
 	mode = Mode::READY;
 	return Status::OK;
 }
 
-Status BodyStackFrame::variableSetCallback(Expression* value) {
+Status BodyStackFrame::variableSetCallback(Expression * value) {
 	if (variableToSet == NULL) {
 		crash("variable to set is null");
 	}
@@ -352,7 +377,7 @@ Status IfStackFrame::conditionCallback(List<Expression*>* condition) {
 	}
 }
 
-Status IfStackFrame::codeCallback(Code* code) {
+Status IfStackFrame::codeCallback(Code * code) {
 	IfConditionCode* ifConditionCode = new IfConditionCode(condition, code);
 	condition = NULL; // don't delete
 	if (type == Type::IF) {
@@ -655,6 +680,25 @@ Status ExpressionStackFrame::processCharacter(strchar c) {
 			}
 		} else {
 			if (c == ')') {
+				if (symbol1 != NULL) {
+					// variable
+					VariableDefinition* vDef = findVariable(symbol1);
+					delete symbol1;
+					symbol1 = NULL;
+
+					if (vDef == NULL) {
+						return Status::ERROR("could not find variable");
+					}
+
+					VariableExpression* vExpression = new VariableExpression(
+							vDef);
+					Status status = expressionCallback(vExpression);
+					if (status != Status::OK) {
+						return status;
+					}
+				}
+
+				bool hasParenthesis = this->hasParenthesis;
 				endFrame();
 				if (!hasParenthesis) {
 					return Status::REPROCESS;
@@ -708,6 +752,7 @@ ArgumentsStackFrame::ArgumentsStackFrame(
 		Callback<Status(List<Expression*>*)> argumentsCallback) :
 		StackFrame(Type::ARGUMENT) {
 	this->argumentsCallback = argumentsCallback;
+	this->scope = scope;
 	arguments = new List<Expression*>();
 	requireArgument = false;
 }
@@ -769,12 +814,12 @@ Code* compile(String sourceCode, size size) {
 	firstFrame->isTop = true;
 	state->compilerStack->push(firstFrame);
 
-	// line stuff
+// line stuff
 	uint64 lineStart = 0;
 	uint64 lineEnd = NULL;
 	uint64 lineNumber = 1;
 
-	// error message stuff
+// error message stuff
 	bool hasError = false;
 	uint64 errorPosition = NULL;
 	Status status = Status::OK;
@@ -871,7 +916,7 @@ Code* compile(String sourceCode, size size) {
 		return NULL;
 	}
 
-	// the code has been compiled, return it
+// the code has been compiled, return it
 	Code* code = ((BodyStackFrame*) state->compilerStack->peek())->code;
 	delete state;
 
