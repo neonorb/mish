@@ -86,27 +86,29 @@ namespace mishtest {
 	static void mish() {
 		log("  - mish");
 
+#ifdef MEMORY_LOG
 		// get allocated count
 		uint64 origionalAllocatedCount = getAllocatedCount();
+#endif
 
 		// ---- register syscalls ----
 		List<ValueType>* triggerFlag1ParameterTypes = new List<ValueType>();
-		Function* triggerFlag1 = new Function("__triggerFlag1"_H, triggerFlag1ParameterTypes, ValueType::VOID, triggerFlag1Function);
+		Function* triggerFlag1 = new Function("__triggerFlag1"_H, triggerFlag1ParameterTypes, ValueType::VOID, BIND_FREE_CB(triggerFlag1Function));
 		mish_syscalls.add(triggerFlag1);
 		testSyscalls.add(triggerFlag1);
 
 		List<ValueType>* triggerFlag2ParameterTypes = new List<ValueType>();
-		Function* triggerFlag2 = new Function("__triggerFlag2"_H, triggerFlag2ParameterTypes, ValueType::VOID, triggerFlag2Function);
+		Function* triggerFlag2 = new Function("__triggerFlag2"_H, triggerFlag2ParameterTypes, ValueType::VOID, BIND_FREE_CB(triggerFlag2Function));
 		mish_syscalls.add(triggerFlag2);
 		testSyscalls.add(triggerFlag2);
 
 		List<ValueType>* trueFalseParameterTypes = new List<ValueType>();
-		Function* trueFalse = new Function("__trueFalse"_H, trueFalseParameterTypes, ValueType::VOID, trueFalseFunction);
+		Function* trueFalse = new Function("__trueFalse"_H, trueFalseParameterTypes, ValueType::VOID, BIND_FREE_CB(trueFalseFunction));
 		mish_syscalls.add(trueFalse);
 		testSyscalls.add(trueFalse);
 
 		List<ValueType>* trueTrueFalseParameterTypes = new List<ValueType>();
-		Function* trueTrueFalse = new Function("__trueTrueFalse"_H, trueTrueFalseParameterTypes, ValueType::VOID, trueTrueFalseFunction);
+		Function* trueTrueFalse = new Function("__trueTrueFalse"_H, trueTrueFalseParameterTypes, ValueType::VOID, BIND_FREE_CB(trueTrueFalseFunction));
 		mish_syscalls.add(trueTrueFalse);
 		testSyscalls.add(trueTrueFalse);
 
@@ -212,6 +214,7 @@ namespace mishtest {
 		}
 		testSyscalls.clear();
 
+#ifdef MEMORY_LOG
 		// get allocated count
 		uint64 laterAllocatedCount = getAllocatedCount();
 
@@ -220,6 +223,7 @@ namespace mishtest {
 			//dumpAllocated();
 		}
 		assert(origionalAllocatedCount == laterAllocatedCount, "memory leak");
+#endif
 	}
 
 	void test() {

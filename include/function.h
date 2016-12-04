@@ -13,8 +13,7 @@ class Function;
 #include <code.h>
 #include <mish.h>
 #include <list.h>
-
-typedef Value* (*FunctionHandler)(List<Value*>* arguments);
+#include <callback.h>
 
 class Function {
 public:
@@ -22,15 +21,15 @@ public:
 	List<ValueType>* parameterTypes;
 	ValueType returnType;
 
-	FunctionHandler native;
+	Callback<Value*(List<Value*>*)> native;
 	Code* code;
 
-	Function(String name, List<ValueType>* parameterTypes,
-			ValueType returnType, Code* code, FunctionHandler native);
-	Function(String name, List<ValueType>* parameterTypes,
-			ValueType returnType, Code* code);
-	Function(String name, List<ValueType>* parameterTypes,
-			ValueType returnType, FunctionHandler native);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType,
+			Code* code, Callback<Value*(List<Value*>*)> native);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType,
+			Code* code);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType,
+			Callback<Value*(List<Value*>*)> native);
 	~Function();
 };
 

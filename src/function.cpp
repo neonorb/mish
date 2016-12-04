@@ -8,7 +8,8 @@
 #include <function.h>
 
 Function::Function(String name, List<ValueType>* parameterTypes,
-		ValueType returnType, Code* code, FunctionHandler native) {
+		ValueType returnType, Code* code,
+		Callback<Value*(List<Value*>*)> native) {
 	this->name = name;
 	this->parameterTypes = parameterTypes;
 	this->returnType = returnType;
@@ -18,12 +19,12 @@ Function::Function(String name, List<ValueType>* parameterTypes,
 
 Function::Function(String name, List<ValueType>* parameterTypes,
 		ValueType returnType, Code* code) :
-		Function(name, parameterTypes, returnType, code, NULL) {
+		Function(name, parameterTypes, returnType, code, { }) {
 
 }
 
 Function::Function(String name, List<ValueType>* parameterTypes,
-		ValueType returnType, FunctionHandler native) :
+		ValueType returnType, Callback<Value*(List<Value*>*)> native) :
 		Function(name, parameterTypes, returnType, NULL, native) {
 
 }
