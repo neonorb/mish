@@ -13,6 +13,7 @@
 #include <fetatest.h>
 
 using namespace feta;
+using namespace mish;
 
 namespace mishtest {
 

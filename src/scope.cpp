@@ -8,6 +8,10 @@
 #include <scope.h>
 #include <memory.h>
 
+using namespace feta;
+
+namespace mish {
+
 Scope::Scope() {
 	parent = NULL;
 	functions = new List<Function*>();
@@ -33,4 +37,6 @@ Scope::~Scope() {
 		delete variableIterator.next();
 	}
 	delete variables;
+}
+
 }

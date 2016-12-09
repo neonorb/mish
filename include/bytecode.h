@@ -8,13 +8,49 @@
 #ifndef INCLUDE_BYTECODE_H_
 #define INCLUDE_BYTECODE_H_
 
+namespace mish {
+
+class Function;
+class Code;
 class Bytecode;
 class FunctionCallBytecode;
 class IfConditionCode;
 class IfBytecode;
 class WhileBytecode;
 
+}
+
 #include <state.h>
+#include <callback.h>
+
+namespace mish {
+
+class Function {
+public:
+	String name;
+	List<ValueType>* parameterTypes;
+	ValueType returnType;
+
+	Callback<Value*(List<Value*>*)> native;
+	Code* code;
+
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType,
+			Code* code, Callback<Value*(List<Value*>*)> native);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType,
+			Code* code);
+	Function(String name, List<ValueType>* parameterTypes, ValueType returnType,
+			Callback<Value*(List<Value*>*)> native);
+	~Function();
+};
+
+class Code {
+public:
+	Code();
+	~Code();
+
+	List<Bytecode*>* bytecodes;
+	Scope* scope;
+};
 
 class Bytecode {
 public:
@@ -73,5 +109,7 @@ public:
 	VariableDefinition* variable;
 	Expression* value;
 };
+
+}
 
 #endif /* INCLUDE_BYTECODE_H_ */

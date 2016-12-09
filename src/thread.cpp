@@ -7,6 +7,8 @@
 
 #include <thread.h>
 
+namespace mish {
+
 Thread::Thread(Code* code, ThreadPriority priority) {
 	this->code = code;
 
@@ -24,4 +26,6 @@ Thread::Thread(Code* code, ThreadPriority priority) {
 Thread::~Thread() {
 	delete code;
 	delete state;
+}
+
 }

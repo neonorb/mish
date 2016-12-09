@@ -8,11 +8,15 @@
 #ifndef INCLUDE_SCOPE_H_
 #define INCLUDE_SCOPE_H_
 
+namespace mish {
+
 class Scope;
+
+}
 
 #include <mish.h>
 
-using namespace feta;
+namespace mish {
 
 class Scope {
 public:
@@ -21,9 +25,11 @@ public:
 
 	Scope* parent;
 
-	List<Function*>* functions;
-	List<Class*>* classes;
-	List<VariableDefinition*>* variables;
+	feta::List<Function*>* functions;
+	feta::List<Class*>* classes;
+	feta::List<VariableDefinition*>* variables;
 };
+
+}
 
 #endif /* INCLUDE_SCOPE_H_ */

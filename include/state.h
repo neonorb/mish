@@ -8,17 +8,31 @@
 #ifndef INCLUDE_STATE_H_
 #define INCLUDE_STATE_H_
 
+namespace mish {
+
+class Class;
+class ValueType;
+class Value;
+class Expression;
+class Variable;
+class VariableDefinition;
+class FunctionCallExpression;
+
+}
+
 #include <list.h>
 #include <string.h>
+#include <scope.h>
 
 using namespace feta;
+
+namespace mish {
 
 enum class ExpressionType {
 	VALUE, FUNCTION, VARIABLE
 };
 
 #undef VOID
-class Class;
 class ValueType {
 	enum class Type {
 		UNKNOWN, VOID, BOOLEAN, STRING, CLASS
@@ -68,14 +82,14 @@ public:
 
 class Class {
 public:
-	Class(String name, List<VariableDefinition>* variableDefinitions);
+	Class(String name, Scope* scope);
 	~Class();
 
 	String name;
-	List<VariableDefinition>* variableDefinitions;
+	Class* superClass;
+	Scope* scope;
 };
 
-class Value;
 class Variable {
 public:
 	Variable(VariableDefinition* definition, Value* value);
@@ -98,7 +112,6 @@ public:
 	virtual ~Expression();
 };
 
-#include <function.h>
 class FunctionCallExpression: public Expression {
 public:
 	FunctionCallExpression(Function* function, List<Expression*>* arguments);
@@ -157,5 +170,7 @@ public:
 
 	Scope* scope;
 };
+
+}
 
 #endif /* INCLUDE_STATE_H_ */

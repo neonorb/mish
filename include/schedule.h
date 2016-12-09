@@ -11,6 +11,8 @@
 #include <mish.h>
 #include <thread.h>
 
+using namespace feta;
+
 namespace mish {
 namespace execute {
 namespace schedule {

@@ -7,6 +7,55 @@
 
 #include <mish.h>
 
+namespace mish {
+
+Function::Function(String name, List<ValueType>* parameterTypes,
+		ValueType returnType, Code* code,
+		Callback<Value*(List<Value*>*)> native) {
+	this->name = name;
+	this->parameterTypes = parameterTypes;
+	this->returnType = returnType;
+	this->code = code;
+	this->native = native;
+}
+
+Function::Function(String name, List<ValueType>* parameterTypes,
+		ValueType returnType, Code* code) :
+		Function(name, parameterTypes, returnType, code, { }) {
+
+}
+
+Function::Function(String name, List<ValueType>* parameterTypes,
+		ValueType returnType, Callback<Value*(List<Value*>*)> native) :
+		Function(name, parameterTypes, returnType, NULL, native) {
+
+}
+
+Function::~Function() {
+	delete name;
+	delete parameterTypes;
+
+	if (code != NULL) {
+		delete code;
+	}
+}
+
+Code::Code() {
+	bytecodes = new List<Bytecode*>();
+	scope = new Scope();
+}
+
+Code::~Code() {
+	Iterator<Bytecode*> iterator = bytecodes->iterator();
+	while (iterator.hasNext()) {
+		Bytecode* bytecode = iterator.next();
+		delete bytecode;
+	}
+	delete bytecodes;
+
+	delete scope;
+}
+
 // bytecode
 Bytecode::Bytecode(Type instruction) {
 	this->type = instruction;
@@ -84,4 +133,6 @@ SetVariableBytecode::SetVariableBytecode(VariableDefinition* variable, Expressio
 
 SetVariableBytecode::~SetVariableBytecode() {
 	delete value;
+}
+
 }

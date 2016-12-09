@@ -7,6 +7,8 @@
 
 #include <mish.h>
 
+namespace mish {
+
 ValueType::ValueType(Type type) {
 	this->type = type;
 	this->clazz = NULL;
@@ -42,14 +44,15 @@ VariableDefinition::~VariableDefinition() {
 
 // ==== class ====
 
-Class::Class(String name, List<VariableDefinition>* variableDefinitions) {
+Class::Class(String name, Scope* scope) {
 	this->name = name;
-	this->variableDefinitions = variableDefinitions;
+	this->scope = scope;
+	this->superClass = NULL;
 }
 
 Class::~Class() {
 	delete name;
-	delete variableDefinitions;
+	delete scope;
 }
 
 // ==== variable ====
@@ -174,4 +177,6 @@ ClassValue::ClassValue(Class* clazz, Scope* scope) :
 
 ClassValue::~ClassValue() {
 	delete scope;
+}
+
 }
