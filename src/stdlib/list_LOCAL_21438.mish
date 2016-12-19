@@ -1,0 +1,80 @@
+inline object List<T> extends Object convertto MyObject  {
+	api {
+		==== get ====
+		
+		T get(Integer index): native
+		
+		====
+		list[index]
+		====
+		T _getAt(Integer index) {
+			return get(index)
+		}
+		
+		==== add ====
+		
+		Void add(T item): native
+		
+		Void add(Integer index, T item): native
+		
+		====
+		list << item
+		====
+		Void _leftShift(T item) {
+			add(item)
+		}
+		
+		====
+		list[index] << item
+		====
+		Void _leftShiftAt(Integer index, T item) {
+			add(index, item)
+		}
+		
+		==== remove ====
+		
+		Void remove(T item): native
+		
+		Void removeAt(Integer index): native
+		
+		====
+		list[index] >>
+		====
+		Void _rightShiftAt(Integer index) {
+			list.remove(index)
+		}
+		
+		====
+		list[index] >> ret
+		====
+		T _rightShiftStoreAt(Integer index) {
+			return remove(index)
+		}
+		
+		==== set ====
+		
+		Void set(Integer index, T item): native
+		
+		====
+		list[index] = item
+		====
+		Void _setAt(Integer index, T item) {
+			set(index, item)
+		}
+		
+		Void setAll(List<AT:T> items) {
+			clear()
+			for(AT item : items) {
+				T realItem = item -> T
+				add(realItem)
+			}
+		}
+		
+		====
+		list = items
+		====
+		Void _assign(List<At:T> items) {
+			setAll(items)
+		}
+	}
+}

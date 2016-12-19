@@ -1,0 +1,78 @@
+sming object List<Item> {
+	object IndexItemPair<Item> {
+		Integer index
+		Item item
+	}
+	
+	object IndexItemsPair<Items> {
+		Integer index
+		Items items
+	}
+	
+	Integer size
+	
+	==== get ====
+	
+	====
+	Item item = list[index]
+	====
+	requires index in [0..size)
+	function getAt Integer index -> Item : native
+	
+	==== add ====
+	
+	====
+	list << item
+	====
+	function addItem Item item : native
+	
+	====
+	list << otherList
+	====
+	function addItems List<AddItem:Item> items {
+		for (AddItem addItem : items) {
+			add(addItem)
+		}
+	}
+	
+	====
+	list[index] << item
+	====
+	function insertAt IndexItemPair<Item> params : native
+	
+	====
+	list[index] << otherList
+	====
+	function insertItemsAt IndexItemsPair<List<Item>> params {
+		Integer index = params.index
+		for (Item item : params.items) {
+			addAt { index=index; item=item }
+			index++
+		}
+	}
+	
+	==== remove ====
+	
+	removeItem Item item : native
+	
+	====
+	list[index] >>
+	Item item = list[index] >>
+	====
+	function removeAt Integer index -> Item : native
+	
+	==== set ====
+	
+	====
+	list[index] = item
+	====
+	function setAt IndexItemPair<Item> params : native
+	
+	====
+	list = otherList
+	====
+	function setItems List<AddItem:Item> items {
+		clear()
+		addItems(items)
+	}
+}

@@ -17,16 +17,28 @@ class Expression;
 class Variable;
 class VariableDefinition;
 class FunctionCallExpression;
+class Scope;
 
 }
 
 #include <list.h>
 #include <string.h>
-#include <scope.h>
 
 using namespace feta;
 
 namespace mish {
+
+class Scope {
+public:
+	Scope();
+	~Scope();
+
+	Scope* parent;
+
+	List<Function*>* functions;
+	List<Class*>* classes;
+	List<VariableDefinition*>* variables;
+};
 
 enum class ExpressionType {
 	VALUE, FUNCTION, VARIABLE

@@ -1,0 +1,5 @@
+using Integer
+
+object Character {
+	final Integer value
+}

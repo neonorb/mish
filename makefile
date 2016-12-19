@@ -2,7 +2,7 @@
 
 NAME=mish
 
-CSOURCES=bytecode state mish compile execute schedule scope thread mishtest
+CSOURCES=bytecode state mish compile execute schedule thread mishtest
 ASOURCES=
 
 LIBS=feta
@@ -12,4 +12,4 @@ LIBS=feta
 -include ../make-base/make-base.mk
 -include ../make-base/make-lib.mk
 
-CFLAGS+=-nostdlib
+CFLAGS+=-nostdlib -fno-rtti -fno-exceptions
