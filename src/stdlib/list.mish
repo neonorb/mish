@@ -27,7 +27,7 @@ inline object List<T> extends Object convertto MyObject  {
 		====
 		list[index] << item
 		====
-		Void _leftShiftAt(Integer index, item) {
+		Void _leftShiftAt(Integer index, T item) {
 			add(index, item)
 		}
 		
@@ -35,7 +35,7 @@ inline object List<T> extends Object convertto MyObject  {
 		
 		Void remove(T item): native
 		
-		Void remove(Integer index): native
+		Void removeAt(Integer index): native
 		
 		====
 		list[index] >>
