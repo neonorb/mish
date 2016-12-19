@@ -1,0 +1,22 @@
+sming object Queue<Item> {
+	internal {
+		List<Item> items(size: size)
+	}
+	
+	Integer size # items.size
+	
+	====
+	queue << item
+	====
+	function add Item item {
+		items << item
+	}
+	
+	====
+	Item item = queue >>
+	====
+	require size > 0
+	function next -> Item {
+		return items[0] >>
+	}
+}

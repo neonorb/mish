@@ -1,0 +1,6 @@
+using List
+using Character
+
+readonly object String {
+	final readonly List<Chracter> characters
+}

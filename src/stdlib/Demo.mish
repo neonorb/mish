@@ -1,0 +1,9 @@
+Status getStatus( Object obj, Mode mode ){
+	return { message=args.obj }
+}
+
+Status getStatus( Object obj, Mode mode ){
+	return {
+		message=obj
+	}
+}
