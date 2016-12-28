@@ -15,7 +15,6 @@ class Thread;
 }
 
 #include <mish.h>
-#include <callback.h>
 
 using namespace feta;
 

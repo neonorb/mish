@@ -10,12 +10,10 @@
 #include <compile.h>
 #include <execute.h>
 #include <schedule.h>
-#include <string.h>
+#include <feta.h>
 
 #ifndef INCLUDE_MISH_H_
 #define INCLUDE_MISH_H_
-
-#include <list.h>
 
 namespace mish {
 

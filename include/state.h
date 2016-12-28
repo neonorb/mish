@@ -21,8 +21,7 @@ class Scope;
 
 }
 
-#include <list.h>
-#include <string.h>
+#include <feta.h>
 
 using namespace feta;
 

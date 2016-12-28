@@ -7,7 +7,6 @@
 
 #include <execute.h>
 #include <feta.h>
-#include <memory.h>
 
 namespace mish {
 
@@ -393,6 +392,9 @@ Status execute(State* state) {
 }
 
 void execute(Code* code) {
+	if(code == NULL) {
+		crash("executing NULL code");
+	}
 	State* state = new State();
 
 	// start executing on first bytecode

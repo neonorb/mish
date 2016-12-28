@@ -9,11 +9,6 @@
 #define INCLUDE_COMPILE_H_
 
 #include <mish.h>
-#include <memory.h>
-#include <stack.h>
-#include <int.h>
-#include <string.h>
-#include <callback.h>
 
 using namespace feta;
 

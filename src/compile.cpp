@@ -814,7 +814,7 @@ State::~State() {
 }
 
 Code* compile(String code) {
-	return compile(code, strlen(code));
+	return compile(code, stringlength(code));
 }
 
 Code* compile(String sourceCode, size size) {
@@ -824,14 +824,14 @@ Code* compile(String sourceCode, size size) {
 	firstFrame->isTop = true;
 	state->compilerStack->push(firstFrame);
 
-// line stuff
-	uint64 lineStart = 0;
-	uint64 lineEnd = NULL;
-	uint64 lineNumber = 1;
+	// line stuff
+	uinteger lineStart = 0;
+	uinteger lineEnd = 0;
+	uinteger lineNumber = 1;
 
-// error message stuff
+	// error message stuff
 	bool hasError = false;
-	uint64 errorPosition = NULL;
+	uinteger errorPosition = 0;
 	Status status = Status::OK;
 
 	uinteger i = 0;
@@ -886,7 +886,7 @@ Code* compile(String sourceCode, size size) {
 	}
 
 	if (hasError) {
-		if (lineEnd == NULL) {
+		if (lineEnd == 0) {
 			lineEnd = i;
 		}
 
@@ -901,7 +901,7 @@ Code* compile(String sourceCode, size size) {
 
 		strchar* errorPositionMarker = (strchar*) create(
 				markerLength * sizeof(strchar) + 1);
-		uint64 i = 0;
+		uinteger i = 0;
 		for (; i < markerLength; i++) {
 			if (lineStart + i == errorPosition) {
 				errorPositionMarker[i] = '^';
@@ -926,7 +926,7 @@ Code* compile(String sourceCode, size size) {
 		return NULL;
 	}
 
-// the code has been compiled, return it
+	// the code has been compiled, return it
 	Code* code = ((BodyStackFrame*) state->compilerStack->peek())->code;
 	delete state;
 

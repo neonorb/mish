@@ -21,7 +21,6 @@ class WhileBytecode;
 }
 
 #include <state.h>
-#include <callback.h>
 
 namespace mish {
 

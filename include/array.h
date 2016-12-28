@@ -8,7 +8,7 @@
 #ifndef INCLUDE_ARRAY_H_
 #define INCLUDE_ARRAY_H_
 
-#include <bool.h>
+#include <feta.h>
 
 using namespace feta;
 

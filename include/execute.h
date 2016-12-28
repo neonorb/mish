@@ -17,8 +17,6 @@ class State;
 }
 
 #include <mish.h>
-#include <stack.h>
-#include <callback.h>
 
 using namespace feta;
 
