@@ -17,9 +17,9 @@ namespace mish {
 namespace execute {
 namespace schedule {
 
-uint64 threadCount();
-uint64 activeThreadCount();
-uint64 backgroundThreadCount();
+uinteger threadCount();
+uinteger activeThreadCount();
+uinteger backgroundThreadCount();
 
 void run();
 void kill(Thread* thread);

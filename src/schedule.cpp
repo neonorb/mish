@@ -14,11 +14,11 @@ namespace schedule {
 List<Thread*> threads;
 
 // thread counts
-uint64 threadCount() {
+uinteger threadCount() {
 	return threads.size();
 }
-uint64 activeThreadCount() {
-	uint64 activeThreadCount = 0;
+uinteger activeThreadCount() {
+	uinteger activeThreadCount = 0;
 
 	Iterator<Thread*> threadIterator = threads.iterator();
 	while (threadIterator.hasNext()) {
@@ -29,8 +29,8 @@ uint64 activeThreadCount() {
 
 	return activeThreadCount;
 }
-uint64 backgroundThreadCount() {
-	uint64 backgroundThreadCount = 0;
+uinteger backgroundThreadCount() {
+	uinteger backgroundThreadCount = 0;
 
 	Iterator<Thread*> threadIterator = threads.iterator();
 	while (threadIterator.hasNext()) {
@@ -51,7 +51,7 @@ void run() {
 	while (threadIterator.hasNext()) {
 		Thread* thread = threadIterator.next();
 		bool keepGoing = true;
-		for (uint64 i = 0; i < 10 && keepGoing; i++) {
+		for (uinteger i = 0; i < 10 && keepGoing; i++) {
 			Status status = execute(thread->state);
 			if (status == Status::DONE) {
 				removedThreads.add(thread);

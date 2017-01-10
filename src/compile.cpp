@@ -879,7 +879,7 @@ Code* compile(String sourceCode, size size) {
 	if (status == Status::OK && endFrameType != StackFrame::Type::BODY
 			&& endFrameType != StackFrame::Type::COMMENT) {
 		// something wasn't properly closed, throw a generic error for now
-		debug("parse mode", (uint64) endFrameType);
+		debug("parse mode", (uinteger) endFrameType);
 		status = Status::ERROR("incorrect parse mode");
 		hasError = true;
 		errorPosition = i;

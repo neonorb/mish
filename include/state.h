@@ -148,7 +148,7 @@ public:
 
 	bool isConstant;
 
-	uint64 referenceCount;
+	uinteger referenceCount;
 	void createReference();
 	void deleteReference();
 };
