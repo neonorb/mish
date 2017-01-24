@@ -16,17 +16,12 @@ namespace mish {
 
 namespace compile {
 
-const Status Status::OK(Type::OK);
-const Status Status::REPROCESS(Type::REPROCESS);
-
-Status::Status(Type type) {
-	this->type = type;
-	this->message = NULL;
+Status::Status(Type type) :
+		type(type), message(NULL) {
 }
 
-Status::Status(Type type, String message) {
-	this->type = type;
-	this->message = message;
+Status::Status(Type type, String message) :
+		type(type), message(message) {
 }
 
 static bool isValidSymbolChar(strchar c) {
@@ -61,7 +56,7 @@ void StackFrame::startFrame(StackFrame* frame) {
 
 Status StackFrame::endFrame() {
 	delete state->compilerStack->pop();
-	return Status::OK;
+	return Status::OK();
 }
 
 void StackFrame::init() {
@@ -70,7 +65,7 @@ void StackFrame::init() {
 Status StackFrame::processCharacter(strchar c) {
 	// no-op
 	UNUSED(c);
-	return Status::OK;
+	return Status::OK();
 }
 
 VariableDefinition* StackFrame::findVariable(String name) {
@@ -111,16 +106,16 @@ Status BodyStackFrame::processCharacter(strchar c) {
 	if (mode == Mode::READY) {
 		if (c == ';' || c == '\n') {
 			lastWasTerminated = true;
-			return Status::OK;
+			return Status::OK();
 		} else if (isWhitespace(c)) {
-			return Status::OK;
+			return Status::OK();
 		} else if (c == '}') {
 			return callbackAndEndFrame(codeCallback, code);
 		} else if (isValidSymbolChar(c)) {
 			// begin a symbol
 			startFrame(new SymbolStackFrame(
 			BIND_MEM_CB(&BodyStackFrame::symbol1Callback, this)));
-			return Status::REPROCESS;
+			return Status::REPROCESS();
 		} else if (c == '#') {
 			startFrame(new CommentStackFrame(CommentStackFrame::Type::LINE));
 		} else if (c == '=' && justAddedVariable) {
@@ -129,7 +124,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 			BIND_MEM_CB(&BodyStackFrame::variableSetCallback, this)));
 		} else if (c == EOF) {
 			if (isTop) {
-				return Status::OK;
+				return Status::OK();
 			} else {
 				return Status::ERROR("block must be closed");
 			}
@@ -138,11 +133,11 @@ Status BodyStackFrame::processCharacter(strchar c) {
 		}
 	} else if (mode == Mode::SYMBOL1) {
 		if (isWhitespace(c)) {
-			return Status::OK;
+			return Status::OK();
 		} else if (isValidSymbolChar(c)) {
 			startFrame(new SymbolStackFrame(
 			BIND_MEM_CB(&BodyStackFrame::symbol2Callback, this)));
-			return Status::REPROCESS;
+			return Status::REPROCESS();
 		} else if (c == '=') {
 			variableToSet = findVariable(symbol1);
 			delete symbol1;
@@ -233,7 +228,7 @@ Status BodyStackFrame::processCharacter(strchar c) {
 	} else {
 		crash("unknown BodyCompilerStackFrameMode");
 	}
-	return Status::OK;
+	return Status::OK();
 }
 
 Status BodyStackFrame::bytecodeCallback(Bytecode * bytecode) {
@@ -244,13 +239,13 @@ Status BodyStackFrame::bytecodeCallback(Bytecode * bytecode) {
 	code->bytecodes->add(bytecode);
 	lastWasTerminated = false;
 	justAddedVariable = false;
-	return Status::OK;
+	return Status::OK();
 }
 
 Status BodyStackFrame::symbol1Callback(String symbol) {
 	this->symbol1 = symbol;
 	mode = Mode::SYMBOL1;
-	return Status::OK;
+	return Status::OK();
 }
 
 Status BodyStackFrame::symbol2Callback(String symbol) {
@@ -303,7 +298,7 @@ Status BodyStackFrame::symbol2Callback(String symbol) {
 	variableIndex++;
 	justAddedVariable = true;
 	mode = Mode::READY;
-	return Status::OK;
+	return Status::OK();
 }
 
 Status BodyStackFrame::variableSetCallback(Expression * value) {
@@ -311,7 +306,7 @@ Status BodyStackFrame::variableSetCallback(Expression * value) {
 		crash("variable to set is null");
 	}
 	bytecodeCallback(new SetVariableBytecode(variableToSet, value));
-	return Status::OK;
+	return Status::OK();
 }
 
 // IfStackFrame
@@ -364,7 +359,7 @@ Status IfStackFrame::processCharacter(strchar c) {
 		crash("unknown IfCompilerStackFrameMode");
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 Status IfStackFrame::conditionCallback(List<Expression*>* condition) {
@@ -374,7 +369,7 @@ Status IfStackFrame::conditionCallback(List<Expression*>* condition) {
 	} else {
 		this->condition = condition->get(0);
 		delete condition;
-		return Status::OK;
+		return Status::OK();
 	}
 }
 
@@ -427,7 +422,7 @@ Status WhileStackFrame::processCharacter(strchar c) {
 		crash("unknown WhileStackFrameMode");
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 Status WhileStackFrame::conditionCallback(List<Expression*>* condition) {
@@ -437,7 +432,7 @@ Status WhileStackFrame::conditionCallback(List<Expression*>* condition) {
 	} else {
 		this->condition = condition->get(0);
 		delete condition;
-		return Status::OK;
+		return Status::OK();
 	}
 }
 
@@ -467,15 +462,15 @@ Status SymbolStackFrame::processCharacter(strchar c) {
 		Status status = callbackAndEndFrame(symbolCallback,
 				charListToString(symbol));
 
-		if (status != Status::OK) {
+		if (status != Status::OK()) {
 			return status;
 		} else {
 			// we havn't done anything with this char, so we have to re-parse it
-			return Status::REPROCESS;
+			return Status::REPROCESS();
 		}
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 // StringStackFrame
@@ -526,7 +521,7 @@ Status StringStackFrame::processCharacter(strchar c) {
 		}
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 // CommentStackFrame
@@ -549,7 +544,7 @@ Status CommentStackFrame::processCharacter(strchar c) {
 		crash("unknown CommentStackFrameType");
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 // FunctionCallStackFrame
@@ -638,7 +633,7 @@ Status FunctionCallStackFrame::argumentsCallback(List<Expression*>* arguments) {
 	} else {
 		crash("unknown FunctionCallStackFrameType");
 	}
-	return Status::OK;
+	return Status::OK();
 }
 
 // ExpressionStackFrame
@@ -671,7 +666,7 @@ Status ExpressionStackFrame::processCharacter(strchar c) {
 		} else if (isValidSymbolChar(c)) {
 			startFrame(new SymbolStackFrame(
 			BIND_MEM_CB(&ExpressionStackFrame::symbolCallback, this)));
-			return Status::REPROCESS;
+			return Status::REPROCESS();
 		} else if (c == '(') {
 			return Status::ERROR(
 					"parenthesis in expression not implemented yet");
@@ -706,26 +701,26 @@ Status ExpressionStackFrame::processCharacter(strchar c) {
 			Expression* expression = this->expression;
 			this->expression = NULL;
 			Status status = callbackAndEndFrame(expressionCallback, expression);
-			if (status != Status::OK) {
+			if (status != Status::OK()) {
 				return status;
 			}
 			if (hasParenthesis && c == ')') {
-				return Status::OK;
+				return Status::OK();
 			}
-			return Status::REPROCESS;
+			return Status::REPROCESS();
 		}
 	} else {
 		crash("unknown ExpressionStackFrameMode");
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 Status ExpressionStackFrame::stringCallback(String string) {
 	expression = (Expression*) new StringValue(string, true);
 	string = NULL;
 	mode = Mode::EXPECT_OPERATOR;
-	return Status::OK;
+	return Status::OK();
 }
 
 Status ExpressionStackFrame::symbolCallback(String symbol) {
@@ -740,21 +735,21 @@ Status ExpressionStackFrame::symbolCallback(String symbol) {
 	}
 
 	mode = Mode::EXPECT_OPERATOR;
-	return Status::OK;
+	return Status::OK();
 }
 
 Status ExpressionStackFrame::subexpressionCallback(Expression * expression) {
 	CUNUSED(expression);
 	NIMPL;
 	mode = Mode::EXPECT_OPERATOR;
-	return Status::OK;
+	return Status::OK();
 }
 
 Status ExpressionStackFrame::functionCallback(
 		FunctionCallExpression * funcCall) {
 	expression = funcCall;
 	mode = Mode::EXPECT_OPERATOR;
-	return Status::OK;
+	return Status::OK();
 }
 
 // ArgumentCompilerStackFrame
@@ -789,15 +784,15 @@ Status ArgumentsStackFrame::processCharacter(strchar c) {
 		requireArgument = false;
 		startFrame(new ExpressionStackFrame(false,
 		BIND_MEM_CB(&ArgumentsStackFrame::argumentCallback, this)));
-		return Status::REPROCESS;
+		return Status::REPROCESS();
 	}
 
-	return Status::OK;
+	return Status::OK();
 }
 
 Status ArgumentsStackFrame::argumentCallback(Expression * argument) {
 	arguments->add(argument);
-	return Status::OK;
+	return Status::OK();
 }
 
 // main compiler state
@@ -832,7 +827,7 @@ Code* compile(String sourceCode, size size) {
 	// error message stuff
 	bool hasError = false;
 	uinteger errorPosition = 0;
-	Status status = Status::OK;
+	Status status = Status::OK();
 
 	uinteger i = 0;
 	for (; i < size + 1; i++) {
@@ -865,10 +860,10 @@ Code* compile(String sourceCode, size size) {
 
 			status = state->compilerStack->peek()->processCharacter(c);
 
-			if (status == Status::REPROCESS) {
+			if (status == Status::REPROCESS()) {
 				i--;
 				continue;
-			} else if (status != Status::OK) {
+			} else if (status != Status::OK()) {
 				hasError = true;
 				errorPosition = i;
 			}
@@ -876,7 +871,7 @@ Code* compile(String sourceCode, size size) {
 	}
 
 	StackFrame::Type endFrameType = state->compilerStack->peek()->type;
-	if (status == Status::OK && endFrameType != StackFrame::Type::BODY
+	if (status == Status::OK() && endFrameType != StackFrame::Type::BODY
 			&& endFrameType != StackFrame::Type::COMMENT) {
 		// something wasn't properly closed, throw a generic error for now
 		debug("parse mode", (uinteger) endFrameType);

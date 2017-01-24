@@ -115,8 +115,6 @@ namespace mishtest {
 
 		// ---- tests ----
 
-		testMishCode("__println('print test')");
-
 		resetFlags();
 
 		testMishCode(TEST1);

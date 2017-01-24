@@ -19,15 +19,19 @@ namespace compile {
 class State;
 
 class Status {
+private:
 	enum class Type {
 		OK, ERROR, WARNING, REPROCESS
 	};
 	Status(Type type);
 	Status(Type type, String message);
 public:
-	static const Status OK;
-	static const Status REPROCESS;
-
+	static Status OK() {
+		return Status(Type::OK);
+	}
+	static Status REPROCESS() {
+		return Status(Type::REPROCESS);
+	}
 	static Status ERROR(String message) {
 		return Status(Type::ERROR, message);
 	}
@@ -35,8 +39,8 @@ public:
 		return Status(Type::WARNING, message);
 	}
 
-	Type type;
-	String message;
+	const Type type;
+	const String message;
 
 	inline bool operator==(Status other) {
 		if (type == other.type) {
@@ -48,6 +52,12 @@ public:
 
 	inline bool operator!=(Status other) {
 		return !operator==(other);
+	}
+
+	inline Status& operator=(Status other) {
+		(*((Type*) &type)) = other.type;
+		(*((String*) &message)) = other.message;
+		return *this;
 	}
 };
 
