@@ -134,11 +134,13 @@ DEFLITERAL(integerliteral, S(manydigits))
 DEFLITERAL(decimalliteral, S(manydigits) S(dot) S(manydigits))
 
 // hex
-DEFMANY(hexcontents, S(digits) S(la)S(ca) S(lb)S(cb) S(lc)S(cc) S(ld)S(cd) S(le)S(ce) S(lf)S(cf))
+DEFGROUP(hexcontents, S(digits) S(la)S(ca) S(lb)S(cb) S(lc)S(cc) S(ld)S(cd) S(le)S(ce) S(lf)S(cf))
 DEFLITERAL(hexliteral, S(d0) S(lx) S(hexcontents))
 
-DEFMANY(symbolfirstchar, S(letters) S(underscore) S(at))
-DEFVARIABLE(symbolrestchar, S(letters) S(digits) S(underscore) S(at))
+DEFGROUP(symbolfirstcharoptions, S(letters) S(underscore) S(at))
+DEFMANY(symbolfirstchar, S(symbolfirstcharoptions))
+DEFGROUP(symbolrestcharoptions, S(letters) S(underscore) S(at) S(digits))
+DEFVARIABLE(symbolrestchar, S(symbolrestcharoptions))
 DEFLITERAL(symbol, S(symbolfirstchar) S(symbolrestchar))
 
 // definition
