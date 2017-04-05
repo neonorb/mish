@@ -1,0 +1,3 @@
+object Iteratable<Item> {
+	Function<Iterator, Void> iterator
+}

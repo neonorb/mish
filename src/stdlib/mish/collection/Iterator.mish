@@ -1,0 +1,17 @@
+object Iterator<Item> {
+	permission HasNext {
+		authorize Iterator
+	}
+	
+	Function<Boolean, Void>(
+		if @.in {
+			asserts HasNext
+		} else {
+			asserts !HasNext
+		}
+	) hasNext
+	
+	Function<Item, Void>(
+		requires HasNext
+	) next
+}

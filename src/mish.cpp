@@ -6,10 +6,13 @@
  */
 
 #include <mish.h>
+#include <danbo.h>
 
 namespace mish {
 
 List<Function*> mish_syscalls;
 List<Class*> mish_classes;
+
+#include "mish-grammar.h"
 
 }

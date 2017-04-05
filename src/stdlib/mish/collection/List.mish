@@ -1,0 +1,140 @@
+sming object List<Item> : Iteratable<Item> {
+	object SingleItemModification<Item> {
+		Integer index
+		Item item
+	}
+	
+	object MultipleItemModification<Item> {
+		Integer index
+		List<Item> items
+	}
+	
+	permission ListContains {
+		authorize List
+	    Item item
+	}
+	
+	Integer(set:me) size : native
+	
+	==== query ====
+	
+	====
+	Item item = list[index]
+	====
+	Function<Item, Integer>(
+		requires @.in.range in [0..size)
+	) getAt : native
+	
+	Function<Boolean, Item>(
+		if @.out {
+			asserts ListContains{ item=@.in }
+		} else {
+			asserts !ListContains{ item=@.in }
+		}
+	) contains = {
+		Item searchingFor = @
+		loop this {
+			if @ is searchingFor {
+				return true ?? we contain this item
+			}
+		}
+		return false ?? we do not contain this item
+	}
+	
+	iterator = {
+		return {
+			Integer index = 0
+			
+			hasNext = {
+				return index+1 < size
+			}
+			
+			next = {
+				index++
+				return getAt index
+			}
+		}
+	}
+	
+	==== mutate ====
+	
+	====
+	list << item
+	====
+	Function<Void, Item>(
+		requires size+1 in size.range
+	) addItem : native
+	
+	====
+	list << otherList
+	====
+	Function<Void, List<AddItem extends Item>>(
+		requires @.in.size in [0..(size.range.max-size)]
+	) addItems = {
+		loop @ {
+			add @
+		}
+	}
+	
+	====
+	list[index] << item
+	====
+	Function<Void, SingleItemModification<Item>>(
+		requires @.in.index.range in [0..size]
+	) insertAt : native
+	
+	====
+	list[index] << otherList
+	====
+	Function<Void, MultipleItemModification<Item>(
+		requires @.in.index.range in [0..size]
+		requires @.in.items.size in [0..(&size.range.max-size)]
+	)> insertItemsAt = {
+		Integer index = @.index
+		loop @.items {
+			addAt { index=:index; item=@ }
+			index++
+		}
+	}
+	
+	Function<Void, Item>(
+		requires ListContains{ item=@.in }
+	) removeItem : native
+	
+	====
+	list[index] >>
+	Item item = list[index] >>
+	====
+	Function<Item, Integer(
+		requires range in [0..size)
+	)> removeAt : native
+	
+	====
+	list[index] = item
+	====
+	Function<Void, SingleItemModification<Item>(
+		requires @.in.index in [0..size)
+	)> setAt : native
+	
+	====
+	list[index] = items
+	====
+	Function<Void, MultipleItemsModification<Item>(
+		requires @.in.index in [0..size)
+		requires @.in.items.size in [0..(size-@.in.index))
+	)> setItemsAt = {
+		Integer index = @.index
+		loop @.items {
+			setAt { index=:index; item=@ }
+			index++
+		}
+	}
+	
+	====
+	list = otherList
+	====
+	Function<Void, List<AddItem extends Item>> setAllItems = {
+		clear VOID
+		addItems items
+	}
+}

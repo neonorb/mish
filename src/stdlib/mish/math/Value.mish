@@ -1,0 +1,14 @@
+immutable object Value {
+	enum Sign [POSITIVE, NEGATIVE, NONE] { }
+	
+	global Infinity(set:none) infinity = { negative = false }
+	global Infinity(set:none, access:me) negInfinity = { negative = true }
+	
+	Sign(set:none) sign
+			
+	Range range = (-infinity..infinity)
+	
+	Function<Boolean, Number> isLessThan
+	Function<Boolean, Number> isGreaterThan
+	Function<Number, Void> negate
+}

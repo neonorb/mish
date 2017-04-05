@@ -1,0 +1,47 @@
+immutable object Number : Value {
+	Function<Number, Number> add = {
+		return (ArithmeticOperation) {
+			type = ADD
+			first = this
+			second = @
+		}
+	}
+	
+	Function<Number, Number> subtract = {
+		return (ArithmeticOperation) {
+			type = SUBTRACT
+			first = this
+			second = @
+		}
+	}
+	
+	Function<Number, Number> multiply = {
+		return (ArithmeticOperation) {
+			type = MULTIPLY
+			first = this
+			second = @
+		}
+	}
+	
+	Function<Number, Number> divide = {
+		return (ArithmeticOperation) {
+			type = DIVIDE
+			first = this
+			second = @
+		}
+	}
+	
+	Function<Number, Number> power = {
+		return (Power) {
+			base = this
+			exponent = @
+		}
+	}
+	
+	Function<Number, Number> root = {
+		return (Root) {
+			of = this
+			base = @
+		}
+	}
+}

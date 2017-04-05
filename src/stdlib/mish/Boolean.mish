@@ -1,0 +1,4 @@
+enum Boolean [TRUE, FALSE] {
+	Function<Boolean, Boolean> and: native
+	Function<Boolean, Boolean> or: native
+}

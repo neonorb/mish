@@ -1,0 +1,26 @@
+group Math {
+	object LogParams {
+		Number of
+		Number base
+	}
+	Function<Number, LogParams> log = {
+		return (Log) {
+			of = @.of
+			base = @.base
+		}
+	}
+	
+	Function<Number, Number> clog = {
+		return (Log) {
+			of = @
+			base = 10
+		}
+	}
+	
+	Function<Number, Number> nlog = {
+		return (Log) {
+			of = @
+			base = Constant.E
+		}
+	}
+}

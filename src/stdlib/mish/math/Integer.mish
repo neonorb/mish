@@ -1,0 +1,3 @@
+immutable object Integer : Number {
+
+}

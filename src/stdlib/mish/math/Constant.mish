@@ -1,0 +1,7 @@
+immutable object Constant(create:me) {
+	static Constant PI = {type=PI}
+	static Constant E = {type=E}
+	
+	enum Type [PI, E] { }
+	Type type
+}

@@ -5,7 +5,7 @@ NAME=mish
 CPPSOURCES=bytecode state mish compile execute schedule thread mishtest
 ASOURCES=
 
-LIBS=feta
+LIBS=feta danbo
 
 # ----
 

@@ -1,0 +1,26 @@
+immutable object Infinity(create:Value) : Value(
+	require sign in [POSITIVE, NEGATIVE]
+) {
+	isLessThan = {
+		if sign == POSITIVE & @ != infinity {
+			return true ?? if positive infinity, everything is smaller except infinity
+		} else {
+			return false 
+		}
+	}
+	
+	isGreaterThan = {
+		if sign == NEGATIVE & @ != negInfinity {
+			return true ?? if negative infinity, everything is larger except negative infinity
+		} else {
+			return false
+		}
+	}
+	
+	negate = {
+		return match sign [
+			POSITIVE: negInfinity,
+			NEGATIVE: infinity
+		]
+	}
+}

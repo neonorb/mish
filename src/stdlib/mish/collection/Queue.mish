@@ -1,0 +1,23 @@
+sming object Queue<Item> : Iteratable<Item> {
+	internal {
+		List<Item>(size: size) items
+	}
+	
+	Integer(set:none) size := items.size
+	
+	====
+	queue << item
+	====
+	Function<Void, Item> add = {
+		items << @
+	}
+	
+	====
+	Item item = queue >>
+	====
+	Function<Item, Void>(
+		requires size > 0
+	) next = {
+		return items[0] >>
+	}
+}

@@ -1,0 +1,7 @@
+immutable object Range {
+	Number min
+	Boolean includesMin
+	
+	Number max
+	Boolean includesMax
+}

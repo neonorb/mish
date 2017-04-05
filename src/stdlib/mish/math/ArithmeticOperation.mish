@@ -1,0 +1,5 @@
+immutable object ArithmeticOperation : Number {
+	enum Type [ADD, SUBTRACT, MULTIPLY, DIVIDE] { }
+	Number first
+	Number second
+}
