@@ -1,0 +1,20 @@
+Status getStatus( Object obj, Mode mode ){
+	return { message=args.obj }
+}
+
+Status getStatus( Object obj, Mode mode ){
+	return {
+		message=obj
+	}
+}
+
+match x > 0 [true:{
+  print "x is greater than 0"
+},false:{
+  print "x is less than or equal to 0"
+}]
+
+match x > 0 [
+  true:{ print "x is greater than 0" },
+  false:{ print "x is less than or equal to 0" }
+]
