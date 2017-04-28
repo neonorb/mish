@@ -85,8 +85,6 @@ namespace mishtest {
 
 	List<Function*> testSyscalls;
 	static void mish() {
-		log("  - mish");
-
 #ifdef MEMORY_LOG
 		// get allocated count
 		uint64 origionalAllocatedCount = getAllocatedCount();
@@ -226,6 +224,7 @@ namespace mishtest {
 	}
 
 	void test() {
+		log(" - mish");
 		mish();
 	}
 

@@ -3,15 +3,15 @@ object Iterator<Item> {
 		authorize Iterator
 	}
 	
-	Function<Boolean, Void>(
+	def Function<Boolean, Void>(
 		if @.in {
-			asserts HasNext
+			grants: HasNext
 		} else {
-			asserts !HasNext
+			revokes: HasNext
 		}
 	) hasNext
 	
-	Function<Item, Void>(
-		requires HasNext
+	def Function<Item, Void>(
+		invoke: HasNext
 	) next
 }

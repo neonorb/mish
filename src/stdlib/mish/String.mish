@@ -1,3 +1,3 @@
-immutable object String {
-	immutable List<Chracter> characters
+object String(mutate:none) {
+	def List<Chracter>(set:none) characters
 }

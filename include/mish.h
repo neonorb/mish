@@ -20,7 +20,6 @@ namespace mish {
 
 extern feta::List<Function*> mish_syscalls;
 extern feta::List<Class*> mish_classes;
-extern danbo::Symbol _danbo_pow;
 
 }
 

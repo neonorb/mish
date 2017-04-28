@@ -1,28 +1,27 @@
-sming object List<Item> : Iteratable<Item> {
+smingobject List<Item> : Iteratable<Item> {
 	object SingleItemModification<Item> {
-		Integer index
-		Item item
+		def Integer index
+		def Item item
 	}
 	
 	object MultipleItemModification<Item> {
-		Integer index
-		List<Item> items
+		def Integer index
+		def List<Item> items
 	}
 	
-	permission ListContains {
-		authorize List
-	    Item item
+	permission ListContains(authorize:List) {
+	    def Item item
 	}
 	
-	Integer(set:me) size : native
+	def Integer(set:List) size : native
 	
 	==== query ====
 	
 	====
-	Item item = list[index]
+	def Item item = list[index]
 	====
-	Function<Item, Integer>(
-		requires @.in.range in [0..size)
+	def Function<Item, Integer>(
+		invoke: @.in.range in [0..size)
 	) getAt : native
 	
 	Function<Boolean, Item>(
