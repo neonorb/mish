@@ -1,0 +1,31 @@
+// Mish grammar file
+
+#include "group"
+
+#include "whitespace"
+
+// symbol
+DEFSWITCH(symbolfirstchar, letters,underscore,at)
+DEFSWITCH(symbolrestcharoptions, letters,underscore,at,digits)
+DEFVARIABLE(symbolrestchar, symbolrestcharoptions)
+DEFLITERAL(symbol, N(first, symbolfirstchar),N(rest, symbolrestchar))
+
+FDEF(expression)
+FDEF(block)
+
+#include "literal"
+
+// function call
+DEFLITERAL(funcall, N(function, symbol), N(colon, colon), N(wsp0, optionalwhitespace), N(argument, expression))
+
+#include "expression"
+
+#include "statement"
+
+// body
+DEFSWITCH(statementterm, requirewhitespace,semicolon)
+DEFLITERAL(bodystatement, N(statement, statement), N(term, statementterm))
+DEFVARIABLE(body, bodystatement)
+
+// block
+DEFLITERAL(block, N(openbrace, openbrace), N(wsp0, optionalwhitespace), N(body, body), N(closebrace, closebrace))

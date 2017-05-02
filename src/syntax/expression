@@ -1,0 +1,2 @@
+DEFLITERAL(subexpression, N(openpar, openpar),N(wsp0, optionalwhitespace),N(expression, expression),N(wsp1, optionalwhitespace),N(closepar, closepar))
+DEFSWITCH(expression, literal, subexpression, funcall)

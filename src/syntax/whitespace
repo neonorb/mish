@@ -1,0 +1,8 @@
+DEFSWITCH(whitespace, space,tab,newline)
+DEFSWITCH(brackets,
+		openpar,closepar,openbrace,closebrace,opensquare,closesquare,opentriangle,closetriangle)
+DEFSWITCH(special,
+		brackets,tilde,grave,exclamation,at,hash,dollar,percent,carrot,ampersand,asterisk,minus,underscore,plus,equals,pipe,backslash,forewardslash,singlequote,doublequote,colon,semicolon,comma,dot,question,space,tab)
+
+DEFMANY(requirewhitespace, whitespace)
+DEFVARIABLE(optionalwhitespace, whitespace)

@@ -1,0 +1,14 @@
+// definition
+DEFLITERAL(defkeyword, N(d, ld), N(e, le),N(f, lf))
+DEFLITERAL(define, N(defkeyword, defkeyword),N(wsp0, requirewhitespace), N(type, symbol), N(wsp1, requirewhitespace), N(variable, symbol))
+// assign
+DEFLITERAL(assign, N(variable, symbol),N(equals, equals),N(expression, expression))
+// define and assign
+DEFLITERAL(defassign, N(define, define),N(equals, equals), N(expression, expression))
+
+// if
+DEFLITERAL(ifkeyword, N(i, li), N(f, lf))
+DEFLITERAL(elseifkeyword, N(e0, le), N(l, ll), N(s, ls), N(e1, le), N(i, li), N(f, lf))
+DEFLITERAL(ifstatement, N(ifkeyword, ifkeyword), N(condition, expression), N(block, block))
+
+DEFSWITCH(statement, define, assign, defassign, funcall)
