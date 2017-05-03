@@ -25,7 +25,8 @@ DEFCHAR(lx, 'x')
 DEFCHAR(ly, 'y')
 DEFCHAR(lz, 'z')
 DEFSWITCH(lletters,
-		la,lb,lc,ld,le,lf,lg,lh,li,lj,lk,ll,lm,ln,lo,lp,lq,lr,ls,lt,lu,lv,lw,lx,ly,lz)
+	la, lb, lc, ld, le, lf, lg, lh, li, lj, lk, ll, lm,
+	ln, lo, lp, lq, lr, ls, lt, lu, lv, lw, lx, ly, lz)
 
 DEFCHAR(ca, 'A')
 DEFCHAR(cb, 'B')
@@ -54,9 +55,10 @@ DEFCHAR(cx, 'X')
 DEFCHAR(cy, 'Y')
 DEFCHAR(cz, 'Z')
 DEFSWITCH(cletters,
-		ca,cb,cc,cd,ce,cf,cg,ch,ci,cj,ck,cl,cm,cn,co,cp,cq,cr,cs,ct,cu,cv,cw,cx,cy,cz)
+	ca, cb, cc, cd, ce, cf, cg, ch, ci, cj, ck, cl, cm,
+	cn, co, cp, cq, cr, cs, ct, cu, cv, cw, cx, cy, cz)
 
-DEFSWITCH(letters, lletters,cletters)
+DEFSWITCH(letters, lletters, cletters)
 
 DEFCHAR(d0, '0')
 DEFCHAR(d1, '1')
@@ -68,7 +70,7 @@ DEFCHAR(d6, '6')
 DEFCHAR(d7, '7')
 DEFCHAR(d8, '8')
 DEFCHAR(d9, '9')
-DEFSWITCH(digits, d0,d1,d2,d3,d4,d5,d6,d7,d8,d9)
+DEFSWITCH(digits, d0, d1, d2, d3, d4, d5, d6, d7, d8, d9)
 
 DEFCHAR(openpar, '(')
 DEFCHAR(closepar, ')')
@@ -105,3 +107,31 @@ DEFCHAR(question, '?')
 DEFCHAR(space, ' ')
 DEFCHAR(tab, '\t')
 DEFCHAR(newline, '\n')
+
+DEFSWITCH(whitespace, space, tab, newline)
+DEFSWITCH(brackets,
+	openpar, closepar,
+	openbrace, closebrace,
+	opensquare, closesquare,
+	opentriangle, closetriangle)
+DEFSWITCH(special,
+	brackets,
+	tilde, grave,
+	exclamation,
+	at,
+	hash,
+	dollar,
+	percent,
+	carrot,
+	ampersand,
+	asterisk,
+	minus, underscore,
+	plus, equals,
+	pipe, backslash,
+	colon, semicolon,
+	singlequote, doublequote,
+	comma,
+	dot,
+	forewardslash, question,
+	space,
+	tab)

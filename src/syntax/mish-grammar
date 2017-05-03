@@ -5,10 +5,16 @@
 #include "whitespace"
 
 // symbol
-DEFSWITCH(symbolfirstchar, letters,underscore,at)
-DEFSWITCH(symbolrestcharoptions, letters,underscore,at,digits)
+DEFSWITCH(symbolfirstchar, letters, underscore, at)
+DEFSWITCH(symbolrestcharoptions, letters, underscore, at, digits)
 DEFVARIABLE(symbolrestchar, symbolrestcharoptions)
-DEFLITERAL(symbol, N(first, symbolfirstchar),N(rest, symbolrestchar))
+DEFLITERAL(symbol, N(first,symbolfirstchar), N(rest,symbolrestchar))
+
+// type
+FDEF(type)
+DEFLITERAL(generic, U(opentriangle), U(type), U(closetriangle))
+DEFOPTIONAL(genericoptional, generic)
+DEFLITERAL(type, N(type,symbol), N(generic,genericoptional))
 
 FDEF(expression)
 FDEF(block)
@@ -16,7 +22,7 @@ FDEF(block)
 #include "literal"
 
 // function call
-DEFLITERAL(funcall, N(function, symbol), N(colon, colon), N(wsp0, optionalwhitespace), N(argument, expression))
+DEFLITERAL(funcall, N(function,symbol), U(colon), U(optionalwhitespace), N(argument,expression))
 
 #include "expression"
 
@@ -24,8 +30,8 @@ DEFLITERAL(funcall, N(function, symbol), N(colon, colon), N(wsp0, optionalwhites
 
 // body
 DEFSWITCH(statementterm, requirewhitespace,semicolon)
-DEFLITERAL(bodystatement, N(statement, statement), N(term, statementterm))
+DEFLITERAL(bodystatement, N(statement,statement), U(statementterm))
 DEFVARIABLE(body, bodystatement)
 
 // block
-DEFLITERAL(block, N(openbrace, openbrace), N(wsp0, optionalwhitespace), N(body, body), N(closebrace, closebrace))
+DEFLITERAL(block, U(openbrace), U(optionalwhitespace), N(body,body), U(closebrace))

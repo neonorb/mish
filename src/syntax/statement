@@ -1,14 +1,47 @@
-// definition
-DEFLITERAL(defkeyword, N(d, ld), N(e, le),N(f, lf))
-DEFLITERAL(define, N(defkeyword, defkeyword),N(wsp0, requirewhitespace), N(type, symbol), N(wsp1, requirewhitespace), N(variable, symbol))
+// -- definition
+// define
+DEFLITERAL(defkeyword,
+	U(ld),
+	U(le),
+	U(lf))
+DEFLITERAL(define, U(defkeyword), U(requirewhitespace), N(type,type), U(requirewhitespace), N(variable,symbol))
 // assign
-DEFLITERAL(assign, N(variable, symbol),N(equals, equals),N(expression, expression))
+DEFLITERAL(assign, N(variable,symbol), U(equals), N(expression,expression))
 // define and assign
-DEFLITERAL(defassign, N(define, define),N(equals, equals), N(expression, expression))
+DEFLITERAL(defassign, N(define,define), U(equals), N(expression,expression))
 
+// -- if
+// elseif
+DEFLITERAL(elseifkeyword,
+	U(le),
+	U(ll),
+	U(ls),
+	U(le),
+	U(li),
+	U(lf))
+DEFLITERAL(elseif, U(elseifkeyword), N(condition,expression), N(block,block))
+DEFVARIABLE(elseifs, elseif)
+// else
+DEFLITERAL(elsekeyword,
+	U(le),
+	U(ll),
+	U(ls),
+	U(le))
+DEFLITERAL(else_, U(elsekeyword), N(block,block))
+DEFOPTIONAL(elseoptional, else_)
 // if
-DEFLITERAL(ifkeyword, N(i, li), N(f, lf))
-DEFLITERAL(elseifkeyword, N(e0, le), N(l, ll), N(s, ls), N(e1, le), N(i, li), N(f, lf))
-DEFLITERAL(ifstatement, N(ifkeyword, ifkeyword), N(condition, expression), N(block, block))
+DEFLITERAL(ifkeyword,
+	U(li),
+	U(lf))
+DEFLITERAL(if_, U(ifkeyword), N(condition,expression), N(block,block), N(elseifs,elseifs), N(else_,elseoptional))
 
-DEFSWITCH(statement, define, assign, defassign, funcall)
+// -- loop
+DEFLITERAL(loopkeyword,
+	U(ll),
+	U(lo),
+	U(lo),
+	U(lp))
+DEFLITERAL(loop, U(loopkeyword), N(parameter,expression), U(openbrace), N(block,block))
+
+// statement
+DEFSWITCH(statement, define, assign, defassign, funcall, if_, loop)

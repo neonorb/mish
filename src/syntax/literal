@@ -1,18 +1,51 @@
 // string
-DEFLITERAL(escapeddoublequote, N(backslash, backslash),N(doublequote, doublequote))
+DEFLITERAL(escapeddoublequote, U(backslash), U(doublequote))
 DEFSWITCH(stringcharacter,
-		brackets,tilde,grave,exclamation,at,hash,dollar,percent,carrot,ampersand,asterisk,minus,underscore,plus,equals,pipe,backslash,forewardslash,escapeddoublequote,singlequote,colon,semicolon,comma,dot,question,space,tab)
+	brackets,
+	tilde,
+	grave,
+	exclamation,
+	at,
+	hash,
+	dollar,
+	percent,
+	carrot,
+	ampersand,
+	asterisk,
+	minus,
+	underscore,
+	plus,
+	equals,
+	pipe,
+	backslash,
+	forewardslash,
+	escapeddoublequote,
+	singlequote,
+	colon,
+	semicolon,
+	comma,
+	dot,
+	question,
+	space,
+	tab)
 DEFVARIABLE(stringcontents, stringcharacter)
-DEFLITERAL(stringliteral, N(startquote, doublequote),N(content, stringcontents),N(endquote, doublequote))
+DEFLITERAL(stringliteral, U(doublequote), N(content,stringcontents), U(doublequote))
 
 // numbers
 DEFMANY(manydigits, digits)
 // integer
-DEFLITERAL(integerliteral, N(digits, manydigits))
+DEFLITERAL(integerliteral, N(digits,manydigits))
 // decimal
-DEFLITERAL(decimalliteral, N(wholedigits, manydigits),N(dot, dot),N(decimaldigits, manydigits))
+DEFLITERAL(decimalliteral, N(wholedigits,manydigits), N(dot,dot), N(decimaldigits,manydigits))
 // hex
-DEFSWITCH(hexcontents, digits,la,ca,lb,cb,lc,cc,ld,cd,le,ce,lf,cf)
-DEFLITERAL(hexliteral, N(zero, d0),N(x, lx), N(digits, hexcontents))
+DEFSWITCH(hexcontents,
+	digits,
+	la, ca,
+	lb, cb,
+	lc, cc,
+	ld, cd,
+	le, ce,
+	lf, cf)
+DEFLITERAL(hexliteral, U(d0), U(lx), N(digits,hexcontents))
 
 DEFSWITCH(literal, integerliteral, decimalliteral, hexliteral)
