@@ -1,3 +1,5 @@
 immutable object Integer : Number {
-
+	isEqualTo = NATIVE
+	isLessThan = NATIVE
+	isGreaterThan = NATIVE
 }

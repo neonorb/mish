@@ -1,7 +1,25 @@
 immutable object Range {
-	Number min
-	Boolean includesMin
+	Number(set none) min
+	Boolean(set none) includesMin
 	
-	Number max
-	Boolean includesMax
+	Number(set none) max
+	Boolean(set none) includesMax
+	
+	Function<Boolean, Number>(set none) contains = {
+		Boolean minOk
+		if includesMin {
+			minOk = (@ >= min) 
+		} else {
+			minOk = (@ > min)
+		}
+		
+		Boolean maxOk
+		if includesMax {
+			maxOk = (@ <= max)
+		} else {
+			maxOk = (@ < max)
+		}
+		
+		return minOk & maxOk
+	}
 }

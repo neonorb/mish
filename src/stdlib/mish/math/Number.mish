@@ -1,4 +1,13 @@
-immutable object Number : Value {
+immutable object Number (
+	Range range
+	testAssign = {
+		return range.
+	}
+) : Value {
+	====
+	Operations
+	====
+	
 	Function<Number, Number> add = {
 		return (ArithmeticOperation) {
 			type = ADD
@@ -43,5 +52,16 @@ immutable object Number : Value {
 			of = this
 			base = @
 		}
+	}
+	
+	====
+	Comparison
+	====
+	
+	Function<Boolean, Number> isEqualTo
+	Function<Boolean, Number> isLessThan
+	Function<Boolean, Number> isGreaterThan
+	Function<Boolean, Range> in = {
+		return @.contains: this
 	}
 }

@@ -9,40 +9,55 @@ smingobject List<Item> : Iteratable<Item> {
 		def List<Item> items
 	}
 	
-	permission ListContains(authorize:List) {
-	    def Item item
+	contract ListContainsCount[Item] {
+	    def Integer count
 	}
 	
-	def Integer(set:List) size : native
+	contract ListContains[Item] {}
+	
+	def Integer(
+		set requires caller List
+	) size = 0
 	
 	==== query ====
 	
 	====
 	def Item item = list[index]
 	====
-	def Function<Item, Integer>(
-		invoke: @.in.range in [0..size)
-	) getAt : native
+	def Function<Item, Integer(
+		@::range = [0..size)
+	)>(
+		asserts ListContains[@.out]
+	) getAt = NATIVE
 	
-	Function<Boolean, Item>(
-		if @.out {
-			asserts ListContains{ item=@.in }
-		} else {
-			asserts !ListContains{ item=@.in }
+	def Function<PositiveInteger, Item>(
+		asserts ListCountainsCount[@.in] {
+			count = @.out
 		}
-	) contains = {
-		Item searchingFor = @
+	) count = {
+		def Item searchingFor = @
+		def Integer count = 0
 		loop this {
 			if @ is searchingFor {
-				return true ?? we contain this item
+				count++
 			}
 		}
-		return false ?? we do not contain this item
+		return count
+	}
+	
+	def Function<Boolean, Item> (
+		if @.out {
+			asserts ListCountains[@.in]
+		} else {
+			asserts !ListCountains[@.in]
+		}
+	) contains = {
+		return count: @ > 0
 	}
 	
 	iterator = {
 		return {
-			Integer index = 0
+			def Integer index = 0
 			
 			hasNext = {
 				return index+1 < size
@@ -60,71 +75,73 @@ smingobject List<Item> : Iteratable<Item> {
 	====
 	list << item
 	====
-	Function<Void, Item>(
-		requires size+1 in size.range
-	) addItem : native
+	def Function<Void, Item>(
+		invoke (size+1).in: size::range
+	) addItem = NATIVE
 	
 	====
 	list << otherList
 	====
-	Function<Void, List<AddItem extends Item>>(
-		requires @.in.size in [0..(size.range.max-size)]
-	) addItems = {
+	def Function<Void, List<AddItem extends Item>(
+		@.size::range = [0..(size::range.max-size)]
+	)> addItems = {
 		loop @ {
-			add @
+			add: @
 		}
 	}
 	
 	====
 	list[index] << item
 	====
-	Function<Void, SingleItemModification<Item>>(
-		requires @.in.index.range in [0..size]
-	) insertAt : native
+	def Function<Void, SingleItemModification<Item>(
+		@.index::range = [0..size]
+	)> insertAt = NATIVE
 	
 	====
 	list[index] << otherList
 	====
-	Function<Void, MultipleItemModification<Item>(
-		requires @.in.index.range in [0..size]
-		requires @.in.items.size in [0..(&size.range.max-size)]
-	)> insertItemsAt = {
-		Integer index = @.index
+	def Function<Void, MultipleItemModification<Item>(
+		@.in.index.range in [0..size]
+		@.in.items.size in [0..(&size.range.max-size)]
+	)> addItemsAt = {
+		def Integer index = @.index
 		loop @.items {
-			addAt { index=:index; item=@ }
+			addAt: { index=:index; item=@ }
 			index++
 		}
 	}
 	
-	Function<Void, Item>(
-		requires ListContains{ item=@.in }
-	) removeItem : native
+	def Function<Void, Item>(
+		requires (ListContainsCount[@.in].count > 0) | ListContains[@.in]; 
+		asserts !ListContains{ item=@.in };
+		asserts ListContains[@.in].count--;
+	) removeItem = NATIVE
 	
 	====
 	list[index] >>
 	Item item = list[index] >>
 	====
-	Function<Item, Integer(
+	def Function<Item, Integer(
 		requires range in [0..size)
-	)> removeAt : native
+	)> removeAt = NATIVE
 	
 	====
 	list[index] = item
 	====
-	Function<Void, SingleItemModification<Item>(
+	def Function<Void, SingleItemModification<Item>(
 		requires @.in.index in [0..size)
-	)> setAt : native
+	)> setAt = NATIVE
 	
 	====
 	list[index] = items
 	====
-	Function<Void, MultipleItemsModification<Item>(
+	def Function<Void, MultipleItemsModification<Item>(
 		requires @.in.index in [0..size)
 		requires @.in.items.size in [0..(size-@.in.index))
 	)> setItemsAt = {
-		Integer index = @.index
+		def Integer index = @.index
 		loop @.items {
-			setAt { index=:index; item=@ }
+			setAt: { index=:index; item=@ }
 			index++
 		}
 	}
@@ -132,8 +149,8 @@ smingobject List<Item> : Iteratable<Item> {
 	====
 	list = otherList
 	====
-	Function<Void, List<AddItem extends Item>> setAllItems = {
-		clear VOID
-		addItems items
+	def Function<Void, List<AddItem extends Item>> setAllItems = {
+		clear: VOID
+		addItems: items
 	}
 }

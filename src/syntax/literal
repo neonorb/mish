@@ -1,6 +1,6 @@
 // string
-DEFLITERAL(escapeddoublequote, U(backslash), U(doublequote))
-DEFSWITCH(stringcharacter,
+D_DEFLITERAL(escapeddoublequote, D_U(backslash), D_U(doublequote))
+D_DEFSWITCH(stringcharacter,
 	brackets,
 	tilde,
 	grave,
@@ -28,17 +28,17 @@ DEFSWITCH(stringcharacter,
 	question,
 	space,
 	tab)
-DEFVARIABLE(stringcontents, stringcharacter)
-DEFLITERAL(stringliteral, U(doublequote), N(content,stringcontents), U(doublequote))
+D_DEFVARIABLE(stringcontents, stringcharacter)
+D_DEFLITERAL(stringliteral, D_U(doublequote), D_N(content,stringcontents), D_U(doublequote))
 
 // numbers
-DEFMANY(manydigits, digits)
+D_DEFMANY(manydigits, digits)
 // integer
-DEFLITERAL(integerliteral, N(digits,manydigits))
+D_DEFLITERAL(integerliteral, D_N(digits,manydigits))
 // decimal
-DEFLITERAL(decimalliteral, N(wholedigits,manydigits), N(dot,dot), N(decimaldigits,manydigits))
+D_DEFLITERAL(decimalliteral, D_N(wholedigits,manydigits), D_N(dot,dot), D_N(decimaldigits,manydigits))
 // hex
-DEFSWITCH(hexcontents,
+D_DEFSWITCH(hexcontents,
 	digits,
 	la, ca,
 	lb, cb,
@@ -46,6 +46,6 @@ DEFSWITCH(hexcontents,
 	ld, cd,
 	le, ce,
 	lf, cf)
-DEFLITERAL(hexliteral, U(d0), U(lx), N(digits,hexcontents))
+D_DEFLITERAL(hexliteral, D_U(d0), D_U(lx), D_N(digits,hexcontents))
 
-DEFSWITCH(literal, integerliteral, decimalliteral, hexliteral)
+D_DEFSWITCH(literal, integerliteral, decimalliteral, hexliteral)

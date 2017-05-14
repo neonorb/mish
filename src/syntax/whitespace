@@ -1,2 +1,2 @@
-DEFMANY(requirewhitespace, whitespace)
-DEFVARIABLE(optionalwhitespace, whitespace)
+D_DEFMANY(requirewhitespace, whitespace)
+D_DEFVARIABLE(optionalwhitespace, whitespace)

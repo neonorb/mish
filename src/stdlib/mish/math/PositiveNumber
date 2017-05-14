@@ -1,0 +1,3 @@
+immutable PositiveNumber (
+	range: [0..infinity)
+) : Number { }

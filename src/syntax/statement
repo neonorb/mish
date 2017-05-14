@@ -1,47 +1,47 @@
 // -- definition
 // define
-DEFLITERAL(defkeyword,
-	U(ld),
-	U(le),
-	U(lf))
-DEFLITERAL(define, U(defkeyword), U(requirewhitespace), N(type,type), U(requirewhitespace), N(variable,symbol))
+D_DEFLITERAL(defkeyword,
+	D_U(ld),
+	D_U(le),
+	D_U(lf))
+D_DEFLITERAL(define, D_U(defkeyword), D_U(requirewhitespace), D_N(type,type), D_U(requirewhitespace), D_N(variable,symbol))
 // assign
-DEFLITERAL(assign, N(variable,symbol), U(equals), N(expression,expression))
+D_DEFLITERAL(assign, D_N(variable,symbol), D_U(equals), D_N(expression,expression))
 // define and assign
-DEFLITERAL(defassign, N(define,define), U(equals), N(expression,expression))
+D_DEFLITERAL(defassign, D_N(define,define), D_U(equals), D_N(expression,expression))
 
 // -- if
 // elseif
-DEFLITERAL(elseifkeyword,
-	U(le),
-	U(ll),
-	U(ls),
-	U(le),
-	U(li),
-	U(lf))
-DEFLITERAL(elseif, U(elseifkeyword), N(condition,expression), N(block,block))
-DEFVARIABLE(elseifs, elseif)
+D_DEFLITERAL(elseifkeyword,
+	D_U(le),
+	D_U(ll),
+	D_U(ls),
+	D_U(le),
+	D_U(li),
+	D_U(lf))
+D_DEFLITERAL(elseif, D_U(elseifkeyword), D_N(condition,expression), D_N(block,block))
+D_DEFVARIABLE(elseifs, elseif)
 // else
-DEFLITERAL(elsekeyword,
-	U(le),
-	U(ll),
-	U(ls),
-	U(le))
-DEFLITERAL(else_, U(elsekeyword), N(block,block))
-DEFOPTIONAL(elseoptional, else_)
+D_DEFLITERAL(elsekeyword,
+	D_U(le),
+	D_U(ll),
+	D_U(ls),
+	D_U(le))
+D_DEFLITERAL(else_, D_U(elsekeyword), D_N(block,block))
+D_DEFOPTIONAL(elseoptional, else_)
 // if
-DEFLITERAL(ifkeyword,
-	U(li),
-	U(lf))
-DEFLITERAL(if_, U(ifkeyword), N(condition,expression), N(block,block), N(elseifs,elseifs), N(else_,elseoptional))
+D_DEFLITERAL(ifkeyword,
+	D_U(li),
+	D_U(lf))
+D_DEFLITERAL(if_, D_U(ifkeyword), D_N(condition,expression), D_N(block,block), D_N(elseifs,elseifs), D_N(else_,elseoptional))
 
 // -- loop
-DEFLITERAL(loopkeyword,
-	U(ll),
-	U(lo),
-	U(lo),
-	U(lp))
-DEFLITERAL(loop, U(loopkeyword), N(parameter,expression), U(openbrace), N(block,block))
+D_DEFLITERAL(loopkeyword,
+	D_U(ll),
+	D_U(lo),
+	D_U(lo),
+	D_U(lp))
+D_DEFLITERAL(loop, D_U(loopkeyword), D_N(parameter,expression), D_U(openbrace), D_N(block,block))
 
 // statement
-DEFSWITCH(statement, define, assign, defassign, funcall, if_, loop)
+D_DEFSWITCH(statement, define, assign, defassign, funcall, if_, loop)
