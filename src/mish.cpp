@@ -13,6 +13,6 @@ namespace mish {
 List<Function*> mish_syscalls;
 List<Class*> mish_classes;
 
-#include "syntax/mish-grammar"
+#include "grammar/mish-grammar"
 
 }
