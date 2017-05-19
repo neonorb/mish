@@ -1,17 +1,15 @@
 object Iterator<Item> {
-	permission HasNext {
-		authorize Iterator
-	}
+	assertion HasNext { }
 	
 	def Function<Boolean, Void>(
-		if @.in {
-			grants: HasNext
+		if in {
+			assert HasNext
 		} else {
-			revokes: HasNext
+			deny HasNext
 		}
 	) hasNext
 	
 	def Function<Item, Void>(
-		invoke: HasNext
+		invoke requires HasNext
 	) next
 }

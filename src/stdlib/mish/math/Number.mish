@@ -1,9 +1,4 @@
-immutable object Number (
-	Range range
-	testAssign = {
-		return range.
-	}
-) : Value {
+immutable object Number : Value {
 	====
 	Operations
 	====
@@ -58,9 +53,9 @@ immutable object Number (
 	Comparison
 	====
 	
-	Function<Boolean, Number> isEqualTo
-	Function<Boolean, Number> isLessThan
-	Function<Boolean, Number> isGreaterThan
+	Function<Boolean, Number> isEqualTo = NATIVE
+	Function<Boolean, Number> isLessThan = NATIVE
+	Function<Boolean, Number> isGreaterThan = NATIVE
 	Function<Boolean, Range> in = {
 		return @.contains: this
 	}

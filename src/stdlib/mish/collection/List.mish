@@ -9,14 +9,17 @@ smingobject List<Item> : Iteratable<Item> {
 		def List<Item> items
 	}
 	
-	contract ListContainsCount[Item] {
+	assertion ListContainsCount[Item] {
 	    def Integer count
 	}
 	
-	contract ListContains[Item] {}
+	assertion ListContains[Item] { }
+	
+	permission MutateList { }
+	permission QueryList { }
 	
 	def Integer(
-		set requires caller List
+		set requires object List
 	) size = 0
 	
 	==== query ====
@@ -25,13 +28,13 @@ smingobject List<Item> : Iteratable<Item> {
 	def Item item = list[index]
 	====
 	def Function<Item, Integer(
-		@::range = [0..size)
+		range = [0..size)
 	)>(
 		asserts ListContains[@.out]
 	) getAt = NATIVE
 	
 	def Function<PositiveInteger, Item>(
-		asserts ListCountainsCount[@.in] {
+		assert ListCountainsCount[@.in] {
 			count = @.out
 		}
 	) count = {
@@ -46,13 +49,14 @@ smingobject List<Item> : Iteratable<Item> {
 	}
 	
 	def Function<Boolean, Item> (
-		if @.out {
-			asserts ListCountains[@.in]
+		if out {
+			assert ListCountains[@.in]
 		} else {
-			asserts !ListCountains[@.in]
+			deny ListCountains[@.in]
 		}
+		invoke requires QueryList
 	) contains = {
-		return count: @ > 0
+		return (count: @) > 0 // ===============
 	}
 	
 	iterator = {
@@ -76,14 +80,14 @@ smingobject List<Item> : Iteratable<Item> {
 	list << item
 	====
 	def Function<Void, Item>(
-		invoke (size+1).in: size::range
+		invoke requires state (&size+1).in: &size::range
 	) addItem = NATIVE
 	
 	====
 	list << otherList
 	====
 	def Function<Void, List<AddItem extends Item>(
-		@.size::range = [0..(size::range.max-size)]
+		size::range = [0..(size::range.max-size)]
 	)> addItems = {
 		loop @ {
 			add: @
@@ -94,19 +98,22 @@ smingobject List<Item> : Iteratable<Item> {
 	list[index] << item
 	====
 	def Function<Void, SingleItemModification<Item>(
-		@.index::range = [0..size]
+		index::range = [0..&size]
 	)> insertAt = NATIVE
 	
 	====
 	list[index] << otherList
 	====
 	def Function<Void, MultipleItemModification<Item>(
-		@.in.index.range in [0..size]
-		@.in.items.size in [0..(&size.range.max-size)]
+		index::range = [0..size]
+		items.size::range = [0..(&size::range.max-size)]
 	)> addItemsAt = {
 		def Integer index = @.index
 		loop @.items {
-			addAt: { index=:index; item=@ }
+			addAt: {
+				index=index
+				item=@
+			}
 			index++
 		}
 	}
@@ -129,7 +136,7 @@ smingobject List<Item> : Iteratable<Item> {
 	list[index] = item
 	====
 	def Function<Void, SingleItemModification<Item>(
-		requires @.in.index in [0..size)
+		invoke requires in.index.in: [0..size)
 	)> setAt = NATIVE
 	
 	====
